@@ -19,7 +19,7 @@ if [ $? -eq 1 ]; then
 	if [ "$FIX" == "True" ]; then
 		echo "Fix requested. Installing clockdiff"
 		if [ "$DIST" == "ubuntu" ]; then
-			sudo apt-get install iputils_clockdiff
+			sudo apt-get install iputils-clockdiff
 		else
 			sudo yum -y install iputils
 		fi
