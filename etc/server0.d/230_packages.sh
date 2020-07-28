@@ -30,6 +30,7 @@ dstat \
 numactl \
 numactl-devel \
 python \
+python3 \
 automake \
 libaio \
 libaio-devel \
@@ -49,6 +50,7 @@ tmux \
 git \
 sshpass \
 python-pip \
+python3-pip \
 lldpd \
 bmon \
 nload \

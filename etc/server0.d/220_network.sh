@@ -61,7 +61,7 @@ echo "checking interfaces \"" $WEKA_INTERFACES "\""
 # some things are easier in python
 
 #!/usr/bin/env python
-NET=`python -c '
+NET=`python3 -c '
 
 import subprocess
 import json
@@ -109,8 +109,8 @@ for iface in args.interfaces:
 
     network[iface] = { "ip":ip, "maskbits":maskbits, "driver":driver }
 
-print network
-#print json.dumps(network, indent=2, sort_keys=True)
+    print( network )
+    #print( json.dumps(network, indent=2, sort_keys=True) )
 
 ' $WEKA_INTERFACES`
 echo $NET

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #from __future__ import absolute_import
 import json
@@ -22,7 +22,7 @@ def pushd(new_dir):
     finally:
         os.chdir(previous_dir)
 
-# print something without a newline
+# print( something without a newline )
 def announce( text ):
     sys.stdout.flush()
     sys.stdout.write(text)
@@ -41,11 +41,11 @@ def run_scripts( server, s, scripts ):
             script = f.read()  # suck the contents of the script file into "script"
         else:
             script=""   # open failed
-            print "Unable to open " + scriptname
+            print( "Unable to open " + scriptname )
             continue
 
         if args.verbose_flag:
-            print "Executing script " + scriptname + " on server " + server + ":"
+            print( "Executing script " + scriptname + " on server " + server + ":" )
 
         desc_start = script.find( "DESCRIPTION" )
         if desc_start != -1:
@@ -60,26 +60,26 @@ def run_scripts( server, s, scripts ):
         scriptresults[scriptname]=[retcode,stdout_txt]     # save our results
 
         if retcode == 0:                # all ok
-            print "\t[", colors.green | "PASS", "]" 
+            print( "\t[", colors.green | "PASS", "]"  )
             num_pass += 1
         elif retcode == 255:            # HARD fail, cannot continue
-            print "\t[", colors.red | "HARDFAIL", "]" 
+            print( "\t[", colors.red | "HARDFAIL", "]"  )
         elif retcode == 254:            # warning
-            print "\t[", colors.yellow | "WARN", "]" 
+            print( "\t[", colors.yellow | "WARN", "]"  )
             num_warn += 1
         else:                           # minor fail
-            print "\t[", colors.red | "FAIL", "]" 
+            print( "\t[", colors.red | "FAIL", "]"  )
             num_fail += 1
             
 
         if args.verbose_flag or retcode != 0:
-            print "script returned:"
-            print stdout_txt
-            print stderr_txt
-            print "=================================================="
+            print( "script returned:" )
+            print( stdout_txt )
+            print( stderr_txt )
+            print( "==================================================" )
 
         if retcode == 255:
-            print "HARD FAIL - terminating tests.  Please resolve the issue and re-run."
+            print( "HARD FAIL - terminating tests.  Please resolve the issue and re-run." )
             sys.exit( 1 )
 
     return num_pass,num_warn,num_fail,scriptresults
@@ -151,7 +151,7 @@ with pushd( os.path.dirname( progname ) ):
         arguments += server + ' '
 
     # debug - remove later, vcf
-    #print arguments	
+    #print( arguments	 )
 
     cluster_results={}
     num_passed=0
@@ -188,7 +188,7 @@ with pushd( os.path.dirname( progname ) ):
 
     # execute on each server
     for directory,scripts in sorted( tests.items() ):
-        print "Entering Directory " + directory
+        print( "Entering Directory " + directory )
         for server in args.servers:
             results={}
             rem = SshMachine( server )  # open an ssh session
@@ -199,7 +199,7 @@ with pushd( os.path.dirname( progname ) ):
             num_warned += warned
             num_failed += failed
             if args.verbose_flag:
-                print "saving results for server " + server
+                print( "saving results for server " + server )
             directory_results[server] = results
 
             # close the ssh session to this server so we're ready for the next
@@ -209,13 +209,13 @@ with pushd( os.path.dirname( progname ) ):
         cluster_results[directory] = directory_results
         directory_results = {}
 
-    #print results
+    #print( results )
     if args.json_flag:
-        print json.dumps(results, indent=2, sort_keys=True)
+        print( json.dumps(results, indent=2, sort_keys=True) )
 
-    print
-    print "RESULTS: " + str( num_passed ) + " Tests Passed, " + str( num_failed ) + " Failed, " + str( num_warned ) + " Warnings" 
-    #print json.dumps(cluster_results, indent=2, sort_keys=True)
+    print( )
+    print( "RESULTS: " + str( num_passed ) + " Tests Passed, " + str( num_failed ) + " Failed, " + str( num_warned ) + " Warnings"  )
+    #print( json.dumps(cluster_results, indent=2, sort_keys=True) )
 
     fp = open( "test_results.json", "w+" )
     fp.write( json.dumps(cluster_results, indent=2, sort_keys=True) )
