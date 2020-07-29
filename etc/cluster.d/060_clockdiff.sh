@@ -34,7 +34,7 @@ do
 	DIFF=`clockdiff $i | awk '{ print $2 + $3 }'`
 	if [ $DIFF -lt 0 ]; then let DIFF="(( 0 - $DIFF ))"; fi
 	echo "Diff is $DIFF"
-	if [ $DIFF -gt 2 ]; then 
+	if [ $DIFF -gt 10 ]; then # up to 10ms is allowed
 		echo "Host $i is not in timesync:"
 		clockdiff $i
 		echo
