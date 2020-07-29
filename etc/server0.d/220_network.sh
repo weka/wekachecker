@@ -55,7 +55,7 @@ for i in $WEKA_INTERFACES; do
 	WEKA_IPS="$WEKA_IPS `ip a s $i | grep "inet " | awk '{print $2}'`"
 done
 
-echo "checking interfaces \"" $WEKA_INTERFACES "\""
+echo "checking interfaces \""$WEKA_INTERFACES"\""
 # now, get it into JSON format
 
 # some things are easier in python
@@ -74,7 +74,7 @@ def fetch_ip( interface ):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = p.wait()
     for line in p.stdout:
-        linelist = line.split()
+        linelist = line.decode().split()
         if linelist[0] == "inet":
             return linelist[1]
 
@@ -87,7 +87,7 @@ def fetch_driver( interface ):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     ret = p.wait()
     for line in p.stdout:
-        linelist = line.split()
+        linelist = line.decode().split()
         if linelist[0] == "driver:":
             return linelist[1]
 
