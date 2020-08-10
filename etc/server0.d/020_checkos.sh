@@ -50,7 +50,7 @@ else
 			if [ ! -f /etc/redhat-release ]; then
 				osver="0"
 			else
-				osver=`cat /etc/redhat-release | awk {'print $4'}`
+				osver=`cat /etc/redhat-release | sed -e 's/.*[^0-9\.]\([0-9\.]\+\)[^0-9]*$/\1/'`
 			fi
 			;;
 	esac
