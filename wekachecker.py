@@ -181,7 +181,8 @@ with pushd( os.path.dirname( progname ) ):
     num_passed += passed
     num_warned += warned
     num_failed += failed
-    cluster_results["cluster"] = results
+    cluster_results["./etc/cluster.d"] = {}
+    cluster_results["./etc/cluster.d"]["all"] = results
     rem.close()
 
     directory_results={}
