@@ -25,7 +25,7 @@ if [ $# -gt 0 ]; then
 				echo "ERROR: Host $i general ping error."
 				let ERRORS=$ERRORS+1
 			else
-				echo "Host $i ping test passed."
+				echo "Host $i non-jumbo ping test passed."
 			fi
 		else
 			echo "Host $i JUMBO ping test passed."
