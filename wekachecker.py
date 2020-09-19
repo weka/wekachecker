@@ -26,7 +26,7 @@ def pushd(new_dir):
 def announce( text ):
     sys.stdout.flush()
     sys.stdout.write(text)
-    #sys.stdout.flush()
+    sys.stdout.flush()
 
 # pass server name/ip, ssh session, and list of scripts
 def run_scripts( server, s, scripts ):
