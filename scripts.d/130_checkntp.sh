@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check for NTP..."
+SCRIPT_TYPE="parallel"
 
 # General requirement is to have time synced for all Weka.IO cluster nodes, since this script is running as standalone on per node basis, it would check if there is NTP running and if time is synced properly
 

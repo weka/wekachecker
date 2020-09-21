@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check if HT is enabled"
+SCRIPT_TYPE="parallel"
 
 # Checking if CPU has HyperThreading available and running or disabled - test will always return true
 which dmidecode &> /dev/null

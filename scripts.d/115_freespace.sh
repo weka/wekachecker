@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check /opt/weka for sufficient capacity..."
+SCRIPT_TYPE="parallel"
 
 # Checking if installation folder has enough free space for Weka.IO install - general requirement is 26Gb and additional 10Gb per CPU core
 

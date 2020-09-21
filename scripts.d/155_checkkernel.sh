@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check if kernel is supported..."
+SCRIPT_TYPE="parallel"
 
 # Checking if running kernel is supported by weka runtime
 current_kernel_result=`uname -r`

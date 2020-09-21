@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check DNS configuration..."
+SCRIPT_TYPE="parallel"
 
 # Checking OS internal DNS servers
 current_dns_server=`cat /etc/resolv.conf | grep -i nameserver | awk {'print $2'}`

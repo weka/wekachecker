@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check for required Packages..."
+SCRIPT_TYPE="parallel"
 
 # Checking if OS has the required packages installed for proper Weka.IO runtime
 install_needed=""

@@ -4,6 +4,7 @@
 # Return codes are as follows: 0 = Success, >0 = Failure, 255 = Fatal failure (stop all tests)
 
 DESCRIPTION="Run iperf to all nodes"
+SCRIPT_TYPE="sequential"
 
 ret="0"
 

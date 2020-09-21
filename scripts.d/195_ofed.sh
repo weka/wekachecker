@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 DESCRIPTION="Check if Mellanox OFED is installed"
+SCRIPT_TYPE="parallel"
 
 # fail immediately if no ofed installed
 which ofed_info &> /dev/null

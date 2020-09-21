@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Checking RAM state for errors"
+SCRIPT_TYPE="parallel"
 
 
 # Put your stuff here

@@ -2,6 +2,7 @@
 
 
 DESCRIPTION="Checking for watchdog timer"
+SCRIPT_TYPE="parallel"
 
 # Checking for watchdog timer
 if [ -c /dev/watchdog ]; then 

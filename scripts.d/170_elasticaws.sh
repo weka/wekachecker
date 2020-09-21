@@ -5,6 +5,7 @@ echo $*
 }
 
 DESCRIPTION="Check if AWS Enhanced Networking is enabled"
+SCRIPT_TYPE="parallel"
 
 # Check if AWS Enhanced Networking is enabled, if not on AWS, script would return true (success)
 set -x

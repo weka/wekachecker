@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Checking Linux swap status"
+SCRIPT_TYPE="parallel"
 
 
 swap_state=`swapon -s`

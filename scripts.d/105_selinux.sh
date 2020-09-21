@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check if OS has SELinux disabled or in permissive mode"
+SCRIPT_TYPE="parallel"
 
 # Checking if OS has SELinux enabled or in permissive mode
 NOT_DISABLED="False"

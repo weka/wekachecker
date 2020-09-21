@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check if internet connection available..."
+SCRIPT_TYPE="parallel"
 
 # Checking if there is an internet connection available
 ping -c2 -i1 -W 1 aws.amazon.com | grep -i "bytes from" &> /dev/null

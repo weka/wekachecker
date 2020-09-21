@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check Firewall rules..."
+SCRIPT_TYPE="parallel"
 
 if grep "Amazon Linux" /etc/os-release &> /dev/null; then
         write_log "Not checking frewall rules because it is N/A on AWS"

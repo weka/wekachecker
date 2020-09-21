@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check OS Release..."
+SCRIPT_TYPE="parallel"
 
 # Check OS version if there is redhat release file, if not, then lsb check, if no lsb, then hostnamectl
 which hostnamectl &> /dev/null

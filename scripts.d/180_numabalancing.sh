@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Checking if Numa balancing is enabled"
+SCRIPT_TYPE="parallel"
 
 # Put your stuff here
 if [ ! -e /proc/sys/kernel/numa_balancing ]; then

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DESCRIPTION="Check if Network Manager is disabled"
+SCRIPT_TYPE="parallel"
 
 # Check if Network Manager is disabled or uninstalled
 systemctl list-unit-files | grep -i "networkmanager" &> /dev/null

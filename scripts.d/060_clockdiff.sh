@@ -1,6 +1,8 @@
 #!/bin/bash
 
 DESCRIPTION="Verify timesync"
+# script type is single, parallel, or sequential
+SCRIPT_TYPE="single"
 
 ret="0"
 
