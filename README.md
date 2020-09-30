@@ -10,8 +10,8 @@ Many small tweaks
 
 1. Either clone the repository or download release tarball and unpack
 2. cd to the wekachecker directory
-3. run "./wekachecker <list of ips>", where the ips are the dataplane network ips
-4. If it reports ANY warnings or errors, run "./report test_results.json" for details
+3. run "./wekachecker.py <list of ips>", where the ips are the dataplane network ips
+4. If it reports ANY warnings or errors, run "./report.py test_results.json" for details
   
 Optional arguments:
   * Run with -c to restrict tests to the cluster-wide tests (ping, ssh, and timesync tests)
