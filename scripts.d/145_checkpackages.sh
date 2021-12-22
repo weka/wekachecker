@@ -104,7 +104,7 @@ else
 	for e in ${debian_pkg_list_general[@]}; do
 		dpkg -l | awk {'print $2'} | grep -i $e &> /dev/null
 		if [ $? -eq 1 ]; then
-			write_log "Package $e is REQUIRED for RECOMMENDED installation for Weka runtime"
+			write_log "Package $e is needed for RECOMMENDED installation for Weka runtime"
 			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi
