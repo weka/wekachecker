@@ -1,4 +1,11 @@
 # sns-wekachecker
+
+
+THIS VERSION IS DEPRECATED - please refer to weka/tools/wekachecker instead!!!!
+
+
+
+
 Validates hosts are ready to run Weka
 
 
