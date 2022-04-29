@@ -15,6 +15,7 @@ if [ $? -ne 0 ]; then
 	ret="1"	
 else
 	ret="0"
+	write_log "No RAM errors found"
 fi
 
 exit $ret
