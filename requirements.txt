@@ -1,0 +1,2 @@
+paramiko~=2.10.4
+colorama~=0.4.4
