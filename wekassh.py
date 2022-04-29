@@ -4,8 +4,7 @@ from logging import getLogger
 
 import paramiko
 from paramiko import SSHClient, AutoAddPolicy, SSHConfig
-from scp import SCPClient
-from wekalib.sthreads import threaded, default_threader
+from sthreads import threaded, default_threader
 
 log = getLogger(__name__)
 
@@ -88,10 +87,10 @@ class WorkerServer:
             self.end_unending()  # kills the fio --server process
             self.ssh.close()
 
-    def scp(self, source, dest):
-        log.info(f"copying {source} to {self.hostname}")
-        with SCPClient(self.ssh.get_transport()) as scp:
-            scp.put(source, recursive=True, remote_path=dest)
+    #def scp(self, source, dest):
+    #    log.info(f"copying {source} to {self.hostname}")
+    #    with SCPClient(self.ssh.get_transport()) as scp:
+    #        scp.put(source, recursive=True, remote_path=dest)
 
     def run(self, cmd):
         try:
