@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 import argparse
+import getpass
 import glob
 # from __future__ import absolute_import
 import json
 import os
 import sys
-import threading
-import time
-import traceback
 from contextlib import contextmanager
 
-from plumbum import SshMachine, colors
+from plumbum import colors
+
+from ssh import SshConfig, WorkerServer, parallel, AuthenticationException, pdsh
 
 """A Python context to move in and out of directories"""
 
@@ -39,53 +39,20 @@ def find_value(script, name):
     if desc_start != -1:
         desc_begin = script.find('"', desc_start) + 1
         desc_end = script.find('"', desc_begin)
-        # desc = "(" + server + ") " + script[desc_begin:desc_end]
-        # return( desc.ljust(70) )
         desc = script[desc_begin:desc_end]
         return (desc)
     else:
         return ("ERROR: Script lacks variable declaration for " + name)
 
 
-def remote_exec(conn, cmd):
-    stdout_txt = ""
-    stderr_txt = ""
-
-    # use our own version of plumbum - Ubuntu is broken. (one line change from orig plumbum... /bin/sh changed to /bin/bash
-    # sys.path.insert( 1, os.getcwd() + "/plumbum-1.6.8" )
-    # from plumbum import SshMachine, colors
-
-    s = conn.session()
-    retcode, stdout_txt, stderr_txt = s.run(cmd, retcode=None)
-    command_results = [retcode, stdout_txt]  # save our results
-    return retcode, command_results
-
-
-thread_results = {}
-
-
-def thread_exec(server, conn, scriptname, cmd):
-    global thread_results
-    retcode, command_results = remote_exec(conn, cmd)
-    if not scriptname in thread_results:
-        thread_results[scriptname] = {}
-    thread_results[scriptname][server] = command_results
-
-
 # pass server name/ip, ssh session, and list of scripts
-def run_scripts(servers, ssh_sessions, scripts, args, preamble):
-    scriptresults = {}
+def run_scripts(workers, scripts, args, preamble):
     num_warn = 0
     num_fail = 0
     num_pass = 0
 
-    # use our own version of plumbum - Ubuntu is broken. (one line change from orig plumbum... /bin/sh changed to /bin/bash
-    # sys.path.insert( 1, os.getcwd() + "/plumbum-1.6.8" )
-    # from plumbum import colors
-
     # execute each script
     for scriptname in scripts:
-        max_retcode = 0
         f = open(scriptname)  # open each of the scripts
         if f.mode == "r":
             script = f.read()  # suck the contents of the script file into "script"
@@ -94,90 +61,53 @@ def run_scripts(servers, ssh_sessions, scripts, args, preamble):
             announce("\nUnable to open " + scriptname + "\n")
             continue
 
-        # if args.verbose_flag:      # oops... not in there...  have to think on how to note verbosity
-        #    announce( "\nExecuting script " + scriptname + " on server " + server + ":\n" )
-
         # saw that script we're going to run:
         announce(find_value(script, "DESCRIPTION").ljust(70))
 
         script_type = find_value(script, "SCRIPT_TYPE")  # should be "single", "parallel", or "sequential"
-        # announce( "\n" )
-        # announce( "\ndebug: script type is '" + script_type + "'\n" )
-        # announce( "\n" )
 
         command = "( eval set -- " + args + "\n" + preamble + script + ")"
 
         if script_type == "single":
 
-            server = servers[0]
+            server = workers[0]
             # run on a single server - doesn't matter which
-            retcode, result = remote_exec(ssh_sessions[server], command)
+            server.run(command)
             if not scriptname in results:
                 results[scriptname] = {}
-            results[scriptname][server] = result
-            max_retcode = retcode
+            results[scriptname][str(server)] = [server.last_output["status"],
+                                                server.last_output["response"]]
+            max_retcode = server.last_output["status"]
 
         elif script_type == "sequential":
-            for server in servers:
+            max_retcode = 0
+            for server in workers:
                 # run on all servers, but one at a time (sequentially)
-                retcode, result = remote_exec(ssh_sessions[server], command)
+                server.run(command)
                 if not scriptname in results:
                     results[scriptname] = {}
-                results[scriptname][server] = result
+                results[scriptname][str(server)] = [server.last_output["status"],
+                                                    server.last_output["response"]]
 
                 # note if any failed/warned.
-                if retcode > max_retcode:
-                    max_retcode = retcode
+                if server.last_output["status"] > max_retcode:
+                    max_retcode = server.last_output["status"]
 
         elif script_type == "parallel":
             # run on all servers in parallel
-            # spawn a thread for each remote_exec() call so they run in parallel, then wait for them.
-            global thread_results
-            parallel_threads = {}
+            # global thread_results
+            max_retcode = 0
 
             # create and start the threads
-            for server in servers:
-                parallel_threads[server] = threading.Thread(target=thread_exec,
-                                                            args=(server, ssh_sessions[server], scriptname, command))
-                parallel_threads[server].start()
-
-            # wait for and reap threads
-            time.sleep(0.1)
-            # print( "parallel_threads = " + str( len( parallel_threads ) ) )
-            while len(parallel_threads) > 0:
-                # print( "parallel_threads = " + str( len( parallel_threads ) ) )
-                dead_threads = {}
-                for server, thread in parallel_threads.items():
-                    if not thread.is_alive():  # is it dead?
-                        # print( "    Thread on " + server + " is dead, reaping" )
-                        thread.join()  # reap it
-                        dead_threads[server] = thread
-
-                # print( "dead_threads = " + str( dead_threads ) )
-                # remove it from the list so we don't try to reap it twice
-                for server, thread in dead_threads.items():
-                    # print( "    removing " + server + "'s thread from list" )
-                    parallel_threads.pop(server)
-
-                # sleep a little so we limit cpu use
-                time.sleep(0.1)
-
-            # time.sleep( 2.0 )
-            # all threads complete - check return codes
-            #    thread_results[scriptname][server] = command_results
-            # print( "thread_results is: ")
-            # print( json.dumps(thread_results, indent=4, sort_keys=True) )
-            # result_list=[]
-            for server, result_list in thread_results[scriptname].items():
-                if result_list[0] > max_retcode:
-                    max_retcode = result_list[0]
-
-            if not scriptname in results:
-                results[scriptname] = {}
-
-            results.update(thread_results)
-            thread_results = {}
-
+            pdsh(workers, command)
+            for server in workers:
+                if not scriptname in results:
+                    results[scriptname] = {}
+                results[scriptname][str(server)] = [server.last_output["status"],
+                                                    server.last_output["response"]]
+                # note if any failed/warned.
+                if server.last_output["status"] > max_retcode:
+                    max_retcode = server.last_output["status"]
         else:
             announce("\nERROR: Script failure: SCRIPT_TYPE in script " + scriptname + " not set.\n")
             print("HARD FAIL - terminating tests.  Please resolve the issue and re-run.")
@@ -196,41 +126,32 @@ def run_scripts(servers, ssh_sessions, scripts, args, preamble):
             print("\t[", colors.red | "FAIL", "]")
             num_fail += 1
 
-        # if args.verbose_flag or retcode != 0:
-        # if retcode != 0:
-        #    print( "script returned:" )
-        #    print( stdout_txt )
-        #    print( stderr_txt )
-        #    print( "==================================================" )
-
         if max_retcode == 255:
             print("HARD FAIL - terminating tests.  Please resolve the issue and re-run.")
             # return early
             return num_pass, num_warn, num_fail, results
-            # sys.exit( 1 )
 
     return num_pass, num_warn, num_fail, results
 
 
-ssh_sessions = {}
+def ask_for_credentials(user):
+    actual_user = getpass.getuser()
+    print(f"Username({actual_user}): ", end='')
+    user = input()
+    if len(user) == 0:
+        user = actual_user
+
+    password = getpass.getpass()
+    print()
+    return (user, password)
 
 
-def open_ssh_connection(server):
-    global ssh_sessions
-    try:
-        # sys.path.insert( 1, os.getcwd() + "/plumbum-1.6.8" )
-        # from plumbum import SshMachine, colors
-        connection = SshMachine(server)  # open an ssh session
-        s = connection.session()
-        ssh_sessions[server] = connection  # save the sessions
-        # ensure we're running bash - ubuntu defaults to /bin/sh
-        # retcode, result = remote_exec(ssh_sessions[server], "exec /bin/bash")
-    except Exception as exc:
-        traceback.print_exc(file=sys.stdout)
-        print("Error ssh'ing to server " + server + str(exc))
-        print("Passwordless ssh not configured properly, exiting")
-        ssh_sessions[server] = None
-        return -1
+def get_creds(workers):  # prompt user for userid and password, set all hosts to same
+    sample_host = workers[0]  # pick any one
+    user, password = ask_for_credentials(sample_host.user)
+    for worker in workers:
+        worker.user = user
+        worker.password = password
 
 
 #
@@ -257,50 +178,37 @@ parser.add_argument("-f", "--fix", dest='fix_flag', action='store_true',
 
 args = parser.parse_args()
 
+# load our ssh configuration
+sshconfig = SshConfig()
+workers = list()
+
 with pushd(os.path.dirname(progname)):
     # make sure passwordless ssh works to all the servers because nothing will work if not set up
     announce("Opening ssh sessions to all servers\n")
     parallel_threads = {}
-    for server in args.servers:
-        open_ssh_connection(server)
-        # create and start the threads
-        """
-        parallel_threads[server] = threading.Thread(target=open_ssh_connection, args=(server,))
-        parallel_threads[server].start()
+    for host in args.servers:
+        workers.append(WorkerServer(host, sshconfig))
 
-    # wait for and reap threads
-    time.sleep(0.1)
-    # print( "parallel_threads = " + str( len( parallel_threads ) ) )
-    while len(parallel_threads) > 0:
-        # print( "parallel_threads = " + str( len( parallel_threads ) ) )
-        dead_threads = {}
-        for server, thread in parallel_threads.items():
-            if not thread.is_alive():  # is it dead?
-                # print( "    Thread on " + server + " is dead, reaping" )
-                thread.join()  # reap it
-                dead_threads[server] = thread
+    success = False
+    while not success:
+        error_count = 0
+        auth_errors = 0
+        # open ssh sessions to the servers - errors are in workers[<servername>].exc
+        parallel(workers, WorkerServer.open)
 
-        # print( "dead_threads = " + str( dead_threads ) )
-        # remove it from the list so we don't try to reap it twice
-        for server, thread in dead_threads.items():
-            # print( "    removing " + server + "'s thread from list" )
-            parallel_threads.pop(server)
-
-        # sleep a little so we limit cpu use
-        time.sleep(0.1)
-
-        # ret = open_ssh_connection( server )
-        # if ret == -1:
-        #    sys.exit( 1 )
-        """
-
-    # print( ssh_sessions )
-    if len(ssh_sessions) == 0:
-        print("Error opening ssh sessions")
-        sys.exit(1)
-    for server, session in ssh_sessions.items():
-        if session == None:
-            print("Error opening ssh session to " + server)
+        for host in workers:
+            if host.exc != None:
+                error_count += 1
+                if type(host.exc) == AuthenticationException:
+                    print("correctly detected Auth Exception")
+                    auth_errors += 1
+                else:
+                    print(f"host {host} returned error: {host.exc}")
+                    error_count += 1
+        if auth_errors > 0:
+            get_creds(workers)  # prompt user for userid and password, set all hosts to same
+        if error_count == 0:
+            success = True
 
     announce("\n")
 
@@ -346,13 +254,8 @@ with pushd(os.path.dirname(progname)):
         arguments += server + ' '
 
     cluster_results = {}
-    num_passed = 0
-    num_failed = 0
-    num_warned = 0
 
-    results = {}
-
-    num_passed, num_warned, num_failed, results = run_scripts(args.servers, ssh_sessions, scripts, arguments, preamble)
+    num_passed, num_warned, num_failed, results = run_scripts(workers, scripts, arguments, preamble)
 
     if args.json_flag:
         print(json.dumps(results, indent=2, sort_keys=True))
