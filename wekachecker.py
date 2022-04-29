@@ -9,9 +9,9 @@ import os
 import sys
 from contextlib import contextmanager
 
-from plumbum import colors
+from colorama import Fore
 
-from ssh import SshConfig, WorkerServer, parallel, AuthenticationException, pdsh
+from wekassh import SshConfig, WorkerServer, parallel, AuthenticationException, pdsh
 
 """A Python context to move in and out of directories"""
 
@@ -47,6 +47,10 @@ def find_value(script, name):
 
 # pass server name/ip, ssh session, and list of scripts
 def run_scripts(workers, scripts, args, preamble):
+    PASS = f" [{Fore.GREEN}PASS{Fore.RESET}]"
+    WARN = f" [{Fore.YELLOW}WARN{Fore.RESET}]"
+    FAIL = f" [{Fore.RED}FAIL{Fore.RESET}]"
+    HARDFAIL = f" [{Fore.RED}HARDFAIL{Fore.RESET}]"
     num_warn = 0
     num_fail = 0
     num_pass = 0
@@ -115,15 +119,15 @@ def run_scripts(workers, scripts, args, preamble):
 
         # end of the if statment - check the return codes
         if max_retcode == 0:  # all ok
-            print("\t[", colors.green | "PASS", "]")
+            print(PASS)
             num_pass += 1
         elif max_retcode == 255:  # HARD fail, cannot continue
-            print("\t[", colors.red | "HARDFAIL", "]")
+            print(HARDFAIL)
         elif max_retcode == 254:  # warning
-            print("\t[", colors.yellow | "WARN", "]")
+            print(WARN)
             num_warn += 1
         else:  # minor fail
-            print("\t[", colors.red | "FAIL", "]")
+            print(FAIL)
             num_fail += 1
 
         if max_retcode == 255:
