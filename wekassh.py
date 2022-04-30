@@ -55,7 +55,7 @@ class WorkerServer:
             self.user = self.hostconfig["user"]
         else:
             self.user = getpass.getuser()
-        self.password = None
+        self.password = ""      # was None, but on linux it produces an error
         self.ssh.load_system_host_keys()
 
         if "identityfile" in self.hostconfig:

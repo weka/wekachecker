@@ -187,90 +187,95 @@ args = parser.parse_args()
 sshconfig = SshConfig()
 workers = list()
 
-#with pushd(os.path.dirname(progname)):
-# make sure passwordless ssh works to all the servers because nothing will work if not set up
-announce("Opening ssh sessions to all servers\n")
-parallel_threads = {}
-for host in args.servers:
-    workers.append(WorkerServer(host, sshconfig))
+try:
+    wd = sys._MEIPASS       # for PyInstaller - this is the temp dir where we are unpacked
+except AttributeError:
+    wd = os.path.dirname(progname)
 
-success = False
-while not success:
-    error_count = 0
-    auth_errors = 0
-    # open ssh sessions to the servers - errors are in workers[<servername>].exc
-    parallel(workers, WorkerServer.open)
+with pushd(wd):     # change to this dir so we can find "./scripts.d"
+    # make sure passwordless ssh works to all the servers because nothing will work if not set up
+    announce("Opening ssh sessions to all servers\n")
+    parallel_threads = {}
+    for host in args.servers:
+        workers.append(WorkerServer(host, sshconfig))
 
-    for host in workers:
-        if host.exc != None:
-            error_count += 1
-            if type(host.exc) == AuthenticationException:
-                print("correctly detected Auth Exception")
-                auth_errors += 1
-            else:
-                print(f"host {host} returned error: {host.exc}")
+    success = False
+    while not success:
+        error_count = 0
+        auth_errors = 0
+        # open ssh sessions to the servers - errors are in workers[<servername>].exc
+        parallel(workers, WorkerServer.open)
+
+        for host in workers:
+            if host.exc != None:
                 error_count += 1
-    if auth_errors > 0:
-        get_creds(workers)  # prompt user for userid and password, set all hosts to same
-    if error_count == 0:
-        success = True
+                if type(host.exc) == AuthenticationException:
+                    print("correctly detected Auth Exception")
+                    auth_errors += 1
+                else:
+                    print(f"host {host} returned error: {host.exc}")
+                    error_count += 1
+        if auth_errors > 0:
+            get_creds(workers)  # prompt user for userid and password, set all hosts to same
+        if error_count == 0:
+            success = True
 
-announce("\n")
+    announce("\n")
 
-# ok, we're good... let's go
-results = {}
+    # ok, we're good... let's go
+    results = {}
 
-# get the list of scripts in ./etc/server.d or ./etc/cluster.d, depending on the arguments - hard code for cluster certification?
-if not args.clusterscripts and not args.serverscripts and not args.perfscripts:
-    # unspecicified by user so execute all scripts
-    scripts = [f for f in glob.glob("./scripts.d/[0-9]*")]
-else:
-    scripts = []
-    if args.clusterscripts:
-        scripts += [f for f in glob.glob("./scripts.d/0*")]
-    if args.serverscripts:
-        scripts += [f for f in glob.glob("./scripts.d/[1-2]*")]
-    if args.perfscripts:
-        scripts += [f for f in glob.glob("./scripts.d/5*")]
+    # get the list of scripts in ./etc/server.d or ./etc/cluster.d, depending on the arguments - hard code for cluster certification?
+    if not args.clusterscripts and not args.serverscripts and not args.perfscripts:
+        # unspecicified by user so execute all scripts
+        scripts = [f for f in glob.glob("./scripts.d/[0-9]*")]
+    else:
+        scripts = []
+        if args.clusterscripts:
+            scripts += [f for f in glob.glob("./scripts.d/0*")]
+        if args.serverscripts:
+            scripts += [f for f in glob.glob("./scripts.d/[1-2]*")]
+        if args.perfscripts:
+            scripts += [f for f in glob.glob("./scripts.d/5*")]
 
-# sort them so they execute in the correct order
-scripts.sort()
+    # sort them so they execute in the correct order
+    scripts.sort()
 
-# get the preamble file - commands and settings for all scripts
-preamblefile = open("./scripts.d/preamble")
-if preamblefile.mode == "r":
-    preamble = preamblefile.read()  # suck in the contents of the preamble file
-else:
-    preamble = ""  # open failed
+    # get the preamble file - commands and settings for all scripts
+    preamblefile = open("./scripts.d/preamble")
+    if preamblefile.mode == "r":
+        preamble = preamblefile.read()  # suck in the contents of the preamble file
+    else:
+        preamble = ""  # open failed
 
-# save the server names/ips to pass to the subscripts
-arguments = ""
+    # save the server names/ips to pass to the subscripts
+    arguments = ""
 
-# if args.verbose_flag:
-#    arguments = arguments + "-v "
+    # if args.verbose_flag:
+    #    arguments = arguments + "-v "
 
-if args.json_flag:
-    arguments = arguments + "-j "
+    if args.json_flag:
+        arguments = arguments + "-j "
 
-if args.fix_flag:
-    arguments = arguments + "-f "
+    if args.fix_flag:
+        arguments = arguments + "-f "
 
-for server in args.servers:
-    arguments += server + ' '
+    for server in args.servers:
+        arguments += server + ' '
 
-cluster_results = {}
+    cluster_results = {}
 
-num_passed, num_warned, num_failed, results = run_scripts(workers, scripts, arguments, preamble)
+    num_passed, num_warned, num_failed, results = run_scripts(workers, scripts, arguments, preamble)
 
-if args.json_flag:
-    print(json.dumps(results, indent=2, sort_keys=True))
+    if args.json_flag:
+        print(json.dumps(results, indent=2, sort_keys=True))
 
-print()
-print("RESULTS: " + str(num_passed) + " Tests Passed, " + str(num_failed) + " Failed, " + str(
-    num_warned) + " Warnings")
-# print( json.dumps(cluster_results, indent=2, sort_keys=True) )
+    print()
+    print("RESULTS: " + str(num_passed) + " Tests Passed, " + str(num_failed) + " Failed, " + str(
+        num_warned) + " Warnings")
+    # print( json.dumps(cluster_results, indent=2, sort_keys=True) )
 
-fp = open("test_results.json", "w+")  # Vin - add date/time to file name
-fp.write(json.dumps(results, indent=4, sort_keys=True))
-fp.write("\n")
-fp.close()
+    fp = open("test_results.json", "w+")  # Vin - add date/time to file name
+    fp.write(json.dumps(results, indent=4, sort_keys=True))
+    fp.write("\n")
+    fp.close()
