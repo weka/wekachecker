@@ -1,15 +1,13 @@
+#
+# wekassh - a simpler interface to paramiko for doing ssh to other servers
+#
 import getpass
 import os
 from logging import getLogger
 
 import paramiko
 from scp import SCPClient
-import warnings
-from cryptography.utils import CryptographyDeprecationWarning
-#with warnings.catch_warnings():
-#        warnings.filterwarnings('ignore', category=CryptographyDeprecationWarning)
-#            import paramiko
-#from paramiko import SSHClient, AutoAddPolicy, SSHConfig
+
 from sthreads import threaded, default_threader
 
 log = getLogger(__name__)
@@ -20,6 +18,7 @@ class AuthenticationException(Exception):
 
     def __str__(self):
         return "Authentication Failed"
+
 
 class CommandOutput(object):
     def __init__(self, status, stdout, stderr, exception):
@@ -56,10 +55,10 @@ class RemoteServer(paramiko.SSHClient):
             self.user = self.hostconfig["user"]
         else:
             self.user = getpass.getuser()
-        self.password = ""      # was None, but on linux it produces an error
+        self.password = ""  # was None, but on linux it produces an error
 
         if "identityfile" in self.hostconfig:
-            self.key_filename = self.hostconfig["identityfile"][0] # only take the first match, like OpenSSH
+            self.key_filename = self.hostconfig["identityfile"][0]  # only take the first match, like OpenSSH
         else:
             self.key_filename = None
 
@@ -71,7 +70,7 @@ class RemoteServer(paramiko.SSHClient):
             self.user = user
         self.password = getpass.getpass()
         print()
-        #return (user, password)
+        # return (user, password)
 
     def connect(self):
         success = False
@@ -103,11 +102,10 @@ class RemoteServer(paramiko.SSHClient):
             # ok, it's a gross hack, but we need to know if we're interactive or not
             # ___interactive is assumed True, parallel() sets it to False
             if not success:
-                if getattr(self,"___interactive", True):
+                if getattr(self, "___interactive", True):
                     self.ask_for_credentials()
                 else:
                     return  # bail out if not interactive and error
-
 
     def close(self):
         self.end_unending()  # kills the fio --server process
@@ -134,8 +132,8 @@ class RemoteServer(paramiko.SSHClient):
             else:
                 log.debug(f"run: 'status {status}, stdout {len(response)} bytes, stderr {len(error)} bytes")
         except Exception as exc:
-            log.debug( f"run (Exception): '{cmd[:100]}', status {status}, stdout {len(response)} bytes, " +
-                       f"stderr {len(error)} bytes, exception='{exc}'")
+            log.debug(f"run (Exception): '{cmd[:100]}', status {status}, stdout {len(response)} bytes, " +
+                      f"stderr {len(error)} bytes, exception='{exc}'")
             log.debug(f"stdout is {response[:100]}")
             log.debug(f"stderr is {error[:100]}")
         self.output = CommandOutput(status, response, error, exc)
@@ -233,11 +231,11 @@ def threaded_method(instance, method, *args, **kwargs):
 
 def parallel(obj_list, method, *args, **kwargs):
     for instance in obj_list:
-        instance.___interactive = False    # mark them all as parallel jobs
+        instance.___interactive = False  # mark them all as parallel jobs
         threaded_method(instance, method, *args, **kwargs)
     default_threader.run()  # wait for them
     for instance in obj_list:
-        instance.___interactive = True    # undo that when done
+        instance.___interactive = True  # undo that when done
 
 
 def pdsh(servers, command):

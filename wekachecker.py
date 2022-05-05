@@ -1,26 +1,21 @@
 #!/usr/bin/env python3
 
 import argparse
-import getpass
 import glob
-# from __future__ import absolute_import
 import json
+import logging
 import os
 import sys
 from contextlib import contextmanager
 
 from colorama import Fore
 
-#import wekassh
-#from wekassh import SshConfig, WorkerServer, parallel, AuthenticationException, pdsh
-
-import logging
 from wekalogging import configure_logging
-
-# get root logger
 from wekassh import RemoteServer, parallel, pdsh
 
+# get root logger
 log = logging.getLogger()
+
 
 @contextmanager
 def pushd(new_dir):
@@ -106,7 +101,6 @@ def run_scripts(workers, scripts, args, preamble):
 
         elif script_type == "parallel":
             # run on all servers in parallel
-            # global thread_results
             max_retcode = 0
 
             # create and start the threads
@@ -145,9 +139,6 @@ def run_scripts(workers, scripts, args, preamble):
     return num_pass, num_warn, num_fail, results
 
 
-
-
-
 #
 #   main
 #
@@ -157,7 +148,6 @@ progname = sys.argv[0]
 parser = argparse.ArgumentParser(description='Execute server cert scripts on servers')
 parser.add_argument('servers', metavar='servername', type=str, nargs='+',
                     help='Server Dataplane IPs to execute on')
-# parser.add_argument("-d", "--scriptdir", dest='scriptdir', default="etc/cluster.d", help="Directory of files to execute, typically ./etc/cluster.d")
 parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='store_true',
                     help="Execute cluster-wide scripts")
 parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store_true',
@@ -177,11 +167,11 @@ configure_logging(log, args.verbosity)
 remote_servers = list()
 
 try:
-    wd = sys._MEIPASS       # for PyInstaller - this is the temp dir where we are unpacked
+    wd = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
 except AttributeError:
     wd = os.path.dirname(progname)
 
-with pushd(wd):     # change to this dir so we can find "./scripts.d"
+with pushd(wd):  # change to this dir so we can find "./scripts.d"
     # make sure passwordless ssh works to all the servers because nothing will work if not set up
     announce("Opening ssh sessions to all servers\n")
     parallel_threads = {}

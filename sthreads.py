@@ -6,9 +6,7 @@
 import functools
 import threading
 import time
-from logging import debug, info, warning, error, critical, getLogger, DEBUG, StreamHandler
-import logging
-import traceback
+from logging import getLogger
 
 log = getLogger(__name__)
 
@@ -33,7 +31,7 @@ class simul_threads():
         log.debug(f"creating new thread, func={function}")
         self.ids += 1
         self.staged[self.ids] = threading.Thread(target=function, args=args, kwargs=kwargs)
-        self.staged[self.ids].daemon = True     # these will die when the main thread dies
+        self.staged[self.ids].daemon = True  # these will die when the main thread dies
 
     def status(self):
         print("Current status of threads:")
@@ -103,4 +101,3 @@ def threaded(_func=None, *, threader=default_threader):
         return decorator_threaded
     else:
         return decorator_threaded(_func)
-

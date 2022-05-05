@@ -1,3 +1,6 @@
+#
+# wekalogging - a streamlined, common logging setup
+#
 import logging
 import logging.handlers
 import platform
@@ -52,6 +55,5 @@ def configure_logging(logger, verbosity):
     # local modules
     logging.getLogger("wekachecker").setLevel(loglevel)
     logging.getLogger("wekassh").setLevel(loglevel)
-
 
     logging.getLogger("paramiko").setLevel(logging.ERROR)
