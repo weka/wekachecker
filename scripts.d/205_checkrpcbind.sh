@@ -7,7 +7,7 @@ SCRIPT_TYPE="parallel"
 systemctl status rpcbind &> /dev/null
 if [ $? != 0 ]; then
     write_log "ERROR: rpcbind not running on `hostname`"
-    exit 255
+    exit 1
 fi
 
 exit 0
