@@ -268,7 +268,8 @@ with pushd(wd):     # change to this dir so we can find "./scripts.d"
         num_warned) + " Warnings")
     # print( json.dumps(cluster_results, indent=2, sort_keys=True) )
 
-    fp = open("test_results.json", "w+")  # Vin - add date/time to file name
-    fp.write(json.dumps(results, indent=4, sort_keys=True))
-    fp.write("\n")
-    fp.close()
+# dump out of the pushd() so we can save the test_results.json in the current dir
+fp = open("test_results.json", "w+")  # Vin - add date/time to file name
+fp.write(json.dumps(results, indent=4, sort_keys=True))
+fp.write("\n")
+fp.close()
