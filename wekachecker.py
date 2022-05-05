@@ -11,10 +11,16 @@ from contextlib import contextmanager
 
 from colorama import Fore
 
-import wekassh
-from wekassh import SshConfig, WorkerServer, parallel, AuthenticationException, pdsh
+#import wekassh
+#from wekassh import SshConfig, WorkerServer, parallel, AuthenticationException, pdsh
 
+import logging
+from wekalogging import configure_logging
 
+# get root logger
+from wekassh import RemoteServer, parallel, pdsh
+
+log = logging.getLogger()
 
 @contextmanager
 def pushd(new_dir):
@@ -80,9 +86,9 @@ def run_scripts(workers, scripts, args, preamble):
             server.run(command)
             if not scriptname in results:
                 results[scriptname] = {}
-            results[scriptname][str(server)] = [server.last_output["status"],
-                                                server.last_output["response"]]
-            max_retcode = server.last_output["status"]
+            results[scriptname][str(server)] = [server.output.status,
+                                                server.output.stdout]
+            max_retcode = server.output.status
 
         elif script_type == "sequential":
             max_retcode = 0
@@ -91,12 +97,12 @@ def run_scripts(workers, scripts, args, preamble):
                 server.run(command)
                 if not scriptname in results:
                     results[scriptname] = {}
-                results[scriptname][str(server)] = [server.last_output["status"],
-                                                    server.last_output["response"]]
+                results[scriptname][str(server)] = [server.output.status,
+                                                    server.output.stdout]
 
                 # note if any failed/warned.
-                if server.last_output["status"] > max_retcode:
-                    max_retcode = server.last_output["status"]
+                if server.output.status > max_retcode:
+                    max_retcode = server.output.status
 
         elif script_type == "parallel":
             # run on all servers in parallel
@@ -108,11 +114,11 @@ def run_scripts(workers, scripts, args, preamble):
             for server in workers:
                 if not scriptname in results:
                     results[scriptname] = {}
-                results[scriptname][str(server)] = [server.last_output["status"],
-                                                    server.last_output["response"]]
+                results[scriptname][str(server)] = [server.output.status,
+                                                    server.output.stdout]
                 # note if any failed/warned.
-                if server.last_output["status"] > max_retcode:
-                    max_retcode = server.last_output["status"]
+                if server.output.status > max_retcode:
+                    max_retcode = server.output.status
         else:
             announce("\nERROR: Script failure: SCRIPT_TYPE in script " + scriptname + " not set.\n")
             print("HARD FAIL - terminating tests.  Please resolve the issue and re-run.")
@@ -139,24 +145,12 @@ def run_scripts(workers, scripts, args, preamble):
     return num_pass, num_warn, num_fail, results
 
 
-def ask_for_credentials(user):
-    actual_user = getpass.getuser()
-    print(f"Username({actual_user}): ", end='')
-    user = input()
-    if len(user) == 0:
-        user = actual_user
-
-    password = getpass.getpass()
-    print()
-    return (user, password)
-
-
-def get_creds(workers):  # prompt user for userid and password, set all hosts to same
-    sample_host = workers[0]  # pick any one
-    user, password = ask_for_credentials(sample_host.user)
-    for worker in workers:
-        worker.user = user
-        worker.password = password
+#def get_creds(workers):  # prompt user for userid and password, set all hosts to same
+#    sample_host = workers[0]  # pick any one
+#    user, password = ask_for_credentials(sample_host.user)
+#    for worker in workers:
+#        worker.user = user
+#        worker.password = password
 
 
 #
@@ -176,16 +170,16 @@ parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store
 parser.add_argument("-p", "--perfscripts", dest='perfscripts', action='store_true', help="Execute performance scripts")
 
 # these next args are passed to the script and parsed in etc/preamble - this is more for syntax checking
-# parser.add_argument("-v", "--verbose", dest='verbose_flag', action='store_true', help="enable verbose mode")
+parser.add_argument("-v", "--verbose", dest='verbosity', action='store_true', help="enable verbose mode")
 parser.add_argument("-j", "--json", dest='json_flag', action='store_true', help="enable json output mode")
 parser.add_argument("-f", "--fix", dest='fix_flag', action='store_true',
                     help="don't just report, but fix any errors if possible")
 
 args = parser.parse_args()
+configure_logging(log, args.verbosity)
 
 # load our ssh configuration
-sshconfig = SshConfig()
-workers = list()
+remote_servers = list()
 
 try:
     wd = sys._MEIPASS       # for PyInstaller - this is the temp dir where we are unpacked
@@ -197,35 +191,26 @@ with pushd(wd):     # change to this dir so we can find "./scripts.d"
     announce("Opening ssh sessions to all servers\n")
     parallel_threads = {}
     for host in args.servers:
-        workers.append(WorkerServer(host, sshconfig))
+        remote_servers.append(RemoteServer(host))
 
-    success = False
-    while not success:
-        error_count = 0
-        auth_errors = 0
-        # open ssh sessions to the servers - errors are in workers[<servername>].exc
-        parallel(workers, WorkerServer.open)
+    # make sure credentials work on the first server, assume they'll work everywhere...
+    remote_servers[0].connect()
 
-        for host in workers:
-            if host.exc != None:
-                error_count += 1
-                if type(host.exc) == AuthenticationException:
-                    print("correctly detected Auth Exception")
-                    auth_errors += 1
-                else:
-                    print(f"host {host} returned error: {host.exc}")
-                    error_count += 1
-        if auth_errors > 0:
-            get_creds(workers)  # prompt user for userid and password, set all hosts to same
-        if error_count == 0:
-            success = True
+    # if they had to provide a user/password, copy it to other remote_servers...
+    if len(remote_servers[0].password) > 0:
+        user = remote_servers[0].user
+        password = remote_servers[0].password
+        for server in remote_servers:
+            server.user = user
+            server.password = password
 
-    announce("\n")
+    # open ssh sessions to the servers - errors are in workers[<servername>].exc
+    parallel(remote_servers, RemoteServer.connect)
 
     # ok, we're good... let's go
     results = {}
 
-    # get the list of scripts in ./etc/server.d or ./etc/cluster.d, depending on the arguments - hard code for cluster certification?
+    # get the list of scripts in ./etc/scripts.d
     if not args.clusterscripts and not args.serverscripts and not args.perfscripts:
         # unspecicified by user so execute all scripts
         scripts = [f for f in glob.glob("./scripts.d/[0-9]*")]
@@ -265,7 +250,7 @@ with pushd(wd):     # change to this dir so we can find "./scripts.d"
 
     cluster_results = {}
 
-    num_passed, num_warned, num_failed, results = run_scripts(workers, scripts, arguments, preamble)
+    num_passed, num_warned, num_failed, results = run_scripts(remote_servers, scripts, arguments, preamble)
 
     if args.json_flag:
         print(json.dumps(results, indent=2, sort_keys=True))

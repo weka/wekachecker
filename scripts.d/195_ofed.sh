@@ -42,14 +42,15 @@ fi
 MLX4_VER=""
 ERR_NO_MLX4=0
 
-modinfo mlx4_core &> /dev/null
-if [ $? == 0 ]; then
-    MLX4_VER=`modinfo mlx4_core | awk '/^version:/{ print $2 }'`
-else
-    echo "No mlx4_core loaded"
-    ret="254"
-    ERR_NO_MLX4=1
-fi
+# we really don't care about this anymore... not really supporting OFED4 anymore.
+#modinfo mlx4_core &> /dev/null
+#if [ $? == 0 ]; then
+#    MLX4_VER=`modinfo mlx4_core | awk '/^version:/{ print $2 }'`
+#else
+#    echo "No mlx4_core loaded"
+#    ret="254"
+#    ERR_NO_MLX4=1
+#fi
 
 # make sure loaded drivers match the installed OFED
 if [ "$MLX5_VER" != "" ]; then
@@ -58,12 +59,13 @@ if [ "$MLX5_VER" != "" ]; then
         ret="254"
     fi
 fi
-if [ "$MLX4_VER" != "" ]; then
-    if [ "$MLX4_VER" != "${OFEDVER:0:9}" ]; then
-        echo "Loaded Mellanox 4 driver $MLX4_VER does not match OFED version $OFEDVER!"
-        ret="254"
-    fi
-fi
+# we really don't care about this anymore... not really supporting OFED4 anymore.
+#if [ "$MLX4_VER" != "" ]; then
+#    if [ "$MLX4_VER" != "${OFEDVER:0:9}" ]; then
+#        echo "Loaded Mellanox 4 driver $MLX4_VER does not match OFED version $OFEDVER!"
+#        ret="254"
+#    fi
+#fi
 
 echo "Valid OFED configuration observed"
 exit $ret

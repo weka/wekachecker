@@ -9,7 +9,8 @@ SCRIPT_TYPE="single"
 
 let ERRORS=0
 #
-# check ssh connectivity, if given hostnames/ips on command line
+# check passwordless ssh connectivity, if given hostnames/ips on command line
+#   this is no longer strictly required.
 #
 if [ $# -gt 0 ]; then
 	for i in $*

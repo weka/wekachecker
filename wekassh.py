@@ -3,12 +3,13 @@ import os
 from logging import getLogger
 
 import paramiko
+from scp import SCPClient
 import warnings
 from cryptography.utils import CryptographyDeprecationWarning
 #with warnings.catch_warnings():
 #        warnings.filterwarnings('ignore', category=CryptographyDeprecationWarning)
 #            import paramiko
-from paramiko import SSHClient, AutoAddPolicy, SSHConfig
+#from paramiko import SSHClient, AutoAddPolicy, SSHConfig
 from sthreads import threaded, default_threader
 
 log = getLogger(__name__)
@@ -20,11 +21,21 @@ class AuthenticationException(Exception):
     def __str__(self):
         return "Authentication Failed"
 
+class CommandOutput(object):
+    def __init__(self, status, stdout, stderr, exception):
+        self.status = status
+        self.stdout = stdout
+        self.stderr = stderr
+        self.exception = exception
 
-class SshConfig:
-    def __init__(self):
-        self.config = SSHConfig()
-        self.config_file = True
+
+class RemoteServer(paramiko.SSHClient):
+    def __init__(self, hostname):
+        super().__init__()
+        self._sshconfig = paramiko.SSHConfig()
+        self._config_file = True
+        self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.load_system_host_keys()
 
         # handle missing config file
         try:
@@ -33,74 +44,81 @@ class SshConfig:
             self.config_file = False
         else:
             try:
-                self.config.parse(fp)
+                self._sshconfig.parse(fp)
             except Exception as exc:  # malformed config file?
                 log.critical(exc)
                 raise
 
-    def lookup(self, hostname):
-        return self.config.lookup(hostname)  # if self.config_file else None
-
-
-# Connection class to perform SSH commands on remote server
-class WorkerServer:
-    def __init__(self, hostname, sshconfig):
-        self.hostname = hostname
-        self.ssh = SSHClient()
-        self.ssh.set_missing_host_key_policy(AutoAddPolicy())
+        self._hostname = hostname
         self.exc = None
-        self.ssh_config = sshconfig
-        self.hostconfig = self.ssh_config.lookup(self.hostname)
+        self.hostconfig = self._sshconfig.lookup(self._hostname)
         if "user" in self.hostconfig:
             self.user = self.hostconfig["user"]
         else:
             self.user = getpass.getuser()
         self.password = ""      # was None, but on linux it produces an error
-        self.ssh.load_system_host_keys()
 
         if "identityfile" in self.hostconfig:
-            self.key_filename = self.hostconfig["identityfile"][0] # only take the first match
+            self.key_filename = self.hostconfig["identityfile"][0] # only take the first match, like OpenSSH
         else:
             self.key_filename = None
 
-    def open(self):
-        self.exc = None
-        self.kwargs = dict()
+    def ask_for_credentials(self):
+        print(f"Enter credentials for server {self._hostname}:")
+        print(f"Username({self.user}): ", end='')
+        user = input()
+        if len(user) != 0:
+            self.user = user
+        self.password = getpass.getpass()
+        print()
+        #return (user, password)
 
-        if self.user is not None:
-            self.kwargs["username"] = self.user
-        if self.password is not None:
-            self.kwargs["password"] = self.password
+    def connect(self):
+        success = False
+        while not success:
+            self.exc = None
+            self.kwargs = dict()
 
-        if self.key_filename is not None:
-            self.kwargs["key_filename"] = self.key_filename
-        else:
-            self.kwargs["key_filename"] = None
-            # self.kwargs["look_for_keys"] = True # actually the default...
+            if self.user is not None:
+                self.kwargs["username"] = self.user
+            if self.password is not None:
+                self.kwargs["password"] = self.password
 
-        try:
-            self.ssh.connect(self.hostname, **self.kwargs)
-        except paramiko.ssh_exception.AuthenticationException as exc:
-            log.critical(f"Authentication error opening ssh session to {self.hostname}: {exc}")
-            self.exc = AuthenticationException()
-        except Exception as exc:
-            log.critical(f"Exception opening ssh session to {self.hostname}: {exc}")
-            self.exc = exc
+            # don't give key_filename if they've provided a password
+            if self.key_filename is not None and "password" not in self.kwargs:
+                self.kwargs["key_filename"] = self.key_filename
+            else:
+                self.kwargs["key_filename"] = None
+                # self.kwargs["look_for_keys"] = True # actually the default...
+
+            try:
+                super().connect(self._hostname, **self.kwargs)
+                success = True
+            except paramiko.ssh_exception.AuthenticationException as exc:
+                log.critical(f"Authentication error opening ssh session to {self._hostname}: {exc}")
+                self.exc = AuthenticationException()
+            except Exception as exc:
+                log.critical(f"Exception opening ssh session to {self._hostname}: {exc}")
+                self.exc = exc
+            if not success:
+                self.ask_for_credentials()
+
 
     def close(self):
-        if self.ssh:
-            self.end_unending()  # kills the fio --server process
-            self.ssh.close()
+        self.end_unending()  # kills the fio --server process
+        super().close()
 
-    #def scp(self, source, dest):
-    #    log.info(f"copying {source} to {self.hostname}")
-    #    with SCPClient(self.ssh.get_transport()) as scp:
-    #        scp.put(source, recursive=True, remote_path=dest)
+    def scp(self, source, dest):
+        log.info(f"copying {source} to {self._hostname}")
+        with SCPClient(self.get_transport()) as scp:
+            scp.put(source, recursive=True, remote_path=dest)
 
     def run(self, cmd):
+        exc = None
         try:
-            stdin, stdout, stderr = self.ssh.exec_command(cmd)
+            stdin, stdout, stderr = self.exec_command(cmd, get_pty=True)
             status = stdout.channel.recv_exit_status()
+            stdout.flush()
             response = stdout.read().decode("utf-8")
             error = stderr.read().decode("utf-8")
             self.last_output = {'status': status, 'response': response, 'error': error, "exc": None}
@@ -109,13 +127,14 @@ class WorkerServer:
                 log.debug(f"stdout is {response[:4000]}")
                 log.debug(f"stderr is {error[:4000]}")
             else:
-                log.debug(f"run: '{cmd}', status {status}, stdout {len(response)} bytes, stderr {len(error)} bytes")
+                log.debug(f"run: 'status {status}, stdout {len(response)} bytes, stderr {len(error)} bytes")
         except Exception as exc:
-            log.debug( f"run: '{cmd[:100]}', status {status}, stdout {len(response)} bytes, " +
+            log.debug( f"run (Exception): '{cmd[:100]}', status {status}, stdout {len(response)} bytes, " +
                        f"stderr {len(error)} bytes, exception='{exc}'")
-            log.debug(f"stdout is {response[:4000]}")
-            log.debug(f"stderr is {error[:4000]}")
-            self.last_output = {'status': status, 'response': response, 'error': error, "exc": exc}
+            log.debug(f"stdout is {response[:100]}")
+            log.debug(f"stderr is {error[:100]}")
+        self.output = CommandOutput(status, response, error, exc)
+        return self.output
 
     def _linux_to_dict(self, separator):
         output = dict()
@@ -160,14 +179,14 @@ class WorkerServer:
             self.run('mount | grep wekafs')
             log.debug(f"{self.last_output}")
             if len(self.last_output['response']) == 0:
-                log.debug(f"{self.hostname} does not have a weka filesystem mounted.")
+                log.debug(f"{self._hostname} does not have a weka filesystem mounted.")
                 self.weka_mounted = False
             else:
                 self.weka_mounted = True
 
     def file_exists(self, path):
         """ see if a file exists on another server """
-        log.debug(f"checking for presence of file {path} on server {self.hostname}")
+        log.debug(f"checking for presence of file {path} on server {self._hostname}")
         self.run(f"if [ -f '{path}' ]; then echo 'True'; else echo 'False'; fi")
         strippedstr = self.last_output['response'].strip(' \n')
         log.debug(f"server responded with {strippedstr}")
@@ -180,11 +199,11 @@ class WorkerServer:
         return self.last_output['response'].strip(' \n')
 
     def __str__(self):
-        return self.hostname
+        return self._hostname
 
     def run_unending(self, command):
         """ run a command that never ends - needs to be terminated by ^c or something """
-        transport = self.ssh.get_transport()
+        transport = self.get_transport()
         self.unending_session = transport.open_session()
         self.unending_session.setblocking(0)  # Set to non-blocking mode
         self.unending_session.get_pty()
@@ -214,9 +233,9 @@ def parallel(obj_list, method, *args, **kwargs):
 
 
 def pdsh(servers, command):
-    parallel(servers, WorkerServer.run, command)
+    parallel(servers, RemoteServer.run, command)
 
 
 def pscp(servers, source, dest):
     log.debug(f"setting up parallel copy to {servers}")
-    parallel(servers, WorkerServer.scp, source, dest)
+    parallel(servers, RemoteServer.scp, source, dest)

@@ -15,5 +15,4 @@ sudo pkill iperf	# make sure it's not already running
 (iperf -s ) &
 write_log "iperf server started"
 sleep 1
-
 exit 0
