@@ -73,7 +73,7 @@ def run_scripts(workers, scripts, args, preamble):
             continue
 
         # saw that script we're going to run:
-        announce(find_value(script, "DESCRIPTION").ljust(70))
+        announce(find_value(script, "DESCRIPTION").ljust(60))
 
         script_type = find_value(script, "SCRIPT_TYPE")  # should be "single", "parallel", or "sequential"
 
@@ -145,12 +145,7 @@ def run_scripts(workers, scripts, args, preamble):
     return num_pass, num_warn, num_fail, results
 
 
-#def get_creds(workers):  # prompt user for userid and password, set all hosts to same
-#    sample_host = workers[0]  # pick any one
-#    user, password = ask_for_credentials(sample_host.user)
-#    for worker in workers:
-#        worker.user = user
-#        worker.password = password
+
 
 
 #
