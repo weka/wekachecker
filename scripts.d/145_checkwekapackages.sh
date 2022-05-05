@@ -8,8 +8,17 @@ install_needed=""
 
 if [ "$DIST" == "redhat" ]; then
 	write_log "Running on top of Red Hat based system"
-	red_hat_pkg_list_weka=( "elfutils-libelf-devel" "glibc" "glibc-headers" "glibc-devel" \
-		"gcc" "make" "perl" "rpcbind" "xfsprogs" "kernel-devel" )
+	red_hat_pkg_list_weka=( "elfutils-libelf-devel" \
+                             "gcc" \
+                             "glibc-headers" \
+                             "glibc-devel" \
+                             "make" \
+                             "perl" \
+                             "rpcbind" \
+                             "xfsprogs" \
+                             "kernel-devel" )
+	#red_hat_pkg_list_weka=( "elfutils-libelf-devel" "glibc" "glibc-headers" "glibc-devel" \
+	#	"gcc" "make" "perl" "rpcbind" "xfsprogs" "kernel-devel" )
 
 
 	for i in ${red_hat_pkg_list_weka[@]}; do
@@ -35,8 +44,10 @@ if [ "$DIST" == "redhat" ]; then
 
 else
 	write_log "Running on top of Debian based system (Ubuntu)"
-	debian_pkg_list_weka=( "elfutils" "libelf-dev" "linux-libc-dev" "glibc-source" "make" "perl" "rpcbind" \
-		"elfutils" "xfsprogs" "kernel-devel")
+	debian_pkg_list_weka=( "libelf-dev" "linux-headers-$(uname -r)" "gcc" "make" "perl" "python2-minimal" "rpcbind" \
+            "xfsprogs" )
+	#debian_pkg_list_weka=( "elfutils" "libelf-dev" "linux-libc-dev" "glibc-source" "make" "perl" "rpcbind" \
+	#	"elfutils" "xfsprogs" "kernel-devel")
 
 	for i in ${debian_pkg_list_weka[@]}; do
 		dpkg -l | awk {'print $2'} | grep -i $i &> /dev/null
