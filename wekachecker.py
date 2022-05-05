@@ -211,6 +211,15 @@ with pushd(wd):     # change to this dir so we can find "./scripts.d"
     # open ssh sessions to the servers - errors are in workers[<servername>].exc
     parallel(remote_servers, RemoteServer.connect)
 
+    errors = False
+    for server in remote_servers:
+        if server.exc is not None:
+            # we had an error connecting
+            print(f"Error connecting to {server}")
+            errors = True
+    if errors:
+        sys.exit(1)
+
     # ok, we're good... let's go
     results = {}
 

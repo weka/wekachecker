@@ -100,8 +100,13 @@ class RemoteServer(paramiko.SSHClient):
             except Exception as exc:
                 log.critical(f"Exception opening ssh session to {self._hostname}: {exc}")
                 self.exc = exc
+            # ok, it's a gross hack, but we need to know if we're interactive or not
+            # ___interactive is assumed True, parallel() sets it to False
             if not success:
-                self.ask_for_credentials()
+                if getattr(self,"___interactive", True):
+                    self.ask_for_credentials()
+                else:
+                    return  # bail out if not interactive and error
 
 
     def close(self):
@@ -228,8 +233,11 @@ def threaded_method(instance, method, *args, **kwargs):
 
 def parallel(obj_list, method, *args, **kwargs):
     for instance in obj_list:
+        instance.___interactive = False    # mark them all as parallel jobs
         threaded_method(instance, method, *args, **kwargs)
     default_threader.run()  # wait for them
+    for instance in obj_list:
+        instance.___interactive = True    # undo that when done
 
 
 def pdsh(servers, command):
