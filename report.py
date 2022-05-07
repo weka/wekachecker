@@ -2,13 +2,7 @@
 
 import json
 import argparse
-import glob
 import sys
-import logging
-
-import os
-from contextlib import contextmanager
-
 
 # parse arguments
 progname=sys.argv[0]

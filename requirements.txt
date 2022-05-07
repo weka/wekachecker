@@ -1,2 +1,5 @@
 paramiko~=2.10.4
 colorama~=0.4.4
+scp~=0.14.4
+cryptography~=36.0.2
+wekapyutils~=0.9.4

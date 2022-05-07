@@ -10,8 +10,11 @@ from contextlib import contextmanager
 
 from colorama import Fore
 
-from wekalogging import configure_logging
-from wekassh import RemoteServer, parallel, pdsh
+#from wekalogging import configure_logging
+#from wekassh import RemoteServer, parallel, pdsh
+
+from wekapyutils.wekassh import RemoteServer, parallel, pdsh
+from wekapyutils.wekalogging import configure_logging, register_module, DEFAULT
 
 # get root logger
 log = logging.getLogger()
@@ -145,14 +148,14 @@ def run_scripts(workers, scripts, args, preamble):
 
 # parse arguments
 progname = sys.argv[0]
-parser = argparse.ArgumentParser(description='Execute server cert scripts on servers')
+parser = argparse.ArgumentParser(description='Check if servers are ready to run Weka')
 parser.add_argument('servers', metavar='servername', type=str, nargs='+',
-                    help='Server Dataplane IPs to execute on')
+                    help='Server DATAPLANE IPs to execute on')
 parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='store_true',
                     help="Execute cluster-wide scripts")
 parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store_true',
                     help="Execute server-specific scripts")
-parser.add_argument("-p", "--perfscripts", dest='perfscripts', action='store_true', help="Execute performance scripts")
+#parser.add_argument("-p", "--perfscripts", dest='perfscripts', action='store_true', help="Execute performance scripts")
 
 # these next args are passed to the script and parsed in etc/preamble - this is more for syntax checking
 parser.add_argument("-v", "--verbose", dest='verbosity', action='store_true', help="enable verbose mode")
@@ -161,6 +164,10 @@ parser.add_argument("-f", "--fix", dest='fix_flag', action='store_true',
                     help="don't just report, but fix any errors if possible")
 
 args = parser.parse_args()
+# local modules
+register_module("wekachecker", DEFAULT)
+#register_module("wekassh", DEFAULT)
+register_module("paramiko", logging.ERROR)
 configure_logging(log, args.verbosity)
 
 # load our ssh configuration
@@ -218,8 +225,8 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
             scripts += [f for f in glob.glob("./scripts.d/0*")]
         if args.serverscripts:
             scripts += [f for f in glob.glob("./scripts.d/[1-2]*")]
-        if args.perfscripts:
-            scripts += [f for f in glob.glob("./scripts.d/5*")]
+        #if args.perfscripts:
+        #    scripts += [f for f in glob.glob("./scripts.d/5*")]
 
     # sort them so they execute in the correct order
     scripts.sort()
