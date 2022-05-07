@@ -216,7 +216,7 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     results = {}
 
     # get the list of scripts in ./etc/scripts.d
-    if not args.clusterscripts and not args.serverscripts and not args.perfscripts:
+    if not args.clusterscripts and not args.serverscripts:
         # unspecicified by user so execute all scripts
         scripts = [f for f in glob.glob("./scripts.d/[0-9]*")]
     else:
