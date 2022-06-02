@@ -11,7 +11,7 @@ which clockdiff &> /dev/null
 if [ $? -eq 1 ]; then
 
 	if [ "$DIST" == "ubuntu" ]; then
-		PACKAGE="iputils_clockdiff"
+		PACKAGE="iputils-clockdiff"
 	else
 		PACKAGE="iputils"
 	fi

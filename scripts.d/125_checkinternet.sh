@@ -15,7 +15,7 @@ if [ $? -eq 1 ]; then
 		ret="0"
 	fi
 else
-	write_log "Internet connection avialable"
+	write_log "Internet connection available"
 	ret="0"
 fi
 	

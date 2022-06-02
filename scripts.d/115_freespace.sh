@@ -7,10 +7,15 @@ SCRIPT_TYPE="parallel"
 
 OPT_WEKA="no"
 
-MOUNTED_ON=`df -h /opt/weka | tail -1 | awk '{print $6}'`
+if [ ! -d "/opt/weka" ]
+then
+	write_log "/opt/weka does not exist"
+	ret="1"
+	exit $ret
+fi
+# MOUNTED_ON=`df -h /opt/weka | tail -1 | awk '{print $6}'`
 
 df -h /opt/weka | tail -1 | awk '{print $6}' | grep /opt &> /dev/null
-
 if [ $? -eq 1 ]; then
         # No locally mounted /opt/dir to seperate partition, which means opt is on /
 	# Total No-No!

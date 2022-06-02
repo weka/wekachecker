@@ -21,7 +21,7 @@ if [ -d /etc/amazon ]; then
 		ret="0"
 	fi
 else
-	write_log "Not on Amazon AWS system, enhanced networking would not be tested"
+	write_log "Not on Amazon AWS system, enhanced networking not tested"
 	ret="0"
 fi
 

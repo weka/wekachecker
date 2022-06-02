@@ -176,7 +176,8 @@ remote_servers = list()
 try:
     wd = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
 except AttributeError:
-    wd = os.path.dirname(progname)
+    ab = os.path.abspath(progname)
+    wd = os.path.dirname(ab)
 
 with pushd(wd):  # change to this dir so we can find "./scripts.d"
     # make sure passwordless ssh works to all the servers because nothing will work if not set up
