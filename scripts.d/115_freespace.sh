@@ -42,7 +42,7 @@ if [ "$space_needed" -le "$local_free_space" ]; then
 	write_log "There is enough space to run Weka.IO on this node"
 	ret="0"
 else
-	write_log "There are a total $num_of_cores cores, this requires "$space_needed"G for proper Weka.IO runtime, there is only "$local_free_space"G available, please free: "$space_missing"G in /opt"
+	write_log "/opt/weka has only "$local_free_space"G free, but at least "$space_needed"G is recommended for $num_of_cores cores"
 	ret="254"
 fi
 
