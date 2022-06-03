@@ -8,7 +8,7 @@ install_needed=""
 remove_needed=""
 
 if [ "$DIST" == "redhat" ]; then
-	write_log "Running on top of Red Hat based system"
+	write_log "Running on Red Hat based system"
 
 	red_hat_pkg_list_general=( "epel-release" "sysstat" "strace" "ipmitool" "tcpdump" "telnet" "nmap" "net-tools" \
         "dstat" "numactl" "numactl-devel" "python" "python3" "libaio" "libaio-devel" "perl" \
@@ -38,7 +38,7 @@ if [ "$DIST" == "redhat" ]; then
     fi
 
 else
-	write_log "Running on top of Debian based system (Ubuntu)"
+	write_log "Running on Debian based system (Ubuntu)"
 
 	debian_pkg_list_general=( "net-tools" "wget" "sg3-utils" "gdisk" "ntpdate" "ipmitool" "sysstat" "strace" \
         "tcpdump" "telnet" "nmap" "hwloc" "numactl" "python3" "pciutils" "lsof" "wget" "bind-utils" \
