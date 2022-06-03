@@ -1,4 +1,7 @@
 venv/**
 test_results.json
 __pycache__/**
+build/**
+dist/**
 test_results.txt
+wekachecker.spec

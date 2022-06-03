@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import report
 from contextlib import contextmanager
 
 from colorama import Fore
@@ -271,3 +272,6 @@ fp = open("test_results.json", "w+")  # Vin - add date/time to file name
 fp.write(json.dumps(results, indent=4, sort_keys=True))
 fp.write("\n")
 fp.close()
+
+report.process_json("test_results.json", "test_results.txt", print_stdout=False)
+
