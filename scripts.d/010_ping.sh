@@ -1,11 +1,31 @@
 #!/bin/bash
 
-DESCRIPTION="IP Jumbo Frames test"
+DESCRIPTION="IP Ping/Jumbo Frames test"
 # script type is single, parallel, or sequential
 SCRIPT_TYPE="single"
 
-
 # Put your stuff here
+
+which ping &> /dev/null
+if [ $? -eq 1 ]; then
+	if [ "$DIST" == "ubuntu" ]; then
+		PACKAGE="iputils-ping"
+	else
+		PACKAGE="iputils"
+	fi
+	echo "ping not found." 
+	if [ "$FIX" == "True" ]; then
+		echo "Fix requested. Installing ping"
+		if [ "$DIST" == "ubuntu" ]; then
+			sudo apt-get install iputils-ping
+		else
+			sudo yum -y install iputils
+		fi
+	else
+		echo "Please install $PACKAGE or use --fix option"
+		exit "255" #  WARN
+	fi
+fi
 
 let ERRORS=0
 let WARN=0
@@ -13,6 +33,7 @@ let WARN=0
 # check ssh connectivity, if given hostnames/ips on command line
 #
 if [ $# -gt 0 ]; then
+	echo
 	for i in $*
 	do
 	  # resolve the name, in case we have a name, not an ip addr
@@ -22,7 +43,6 @@ if [ $# -gt 0 ]; then
 	  # using sed below because the output of the 'ip' command isn't strictly columnar; data may be in different columns
 	  # determine which interface will be used to get to this address
 	  IF=`ip -o route get $IPADDR | sed 's/.*dev //;s/ .*//'`
-
 	  # determine if ETH or IB
 	  LINK=`ip -o -f link address show dev $IF | sed 's/.*link\///;s/ .*//'`  # extract link/ether
 	  CONF_MTU=`ip -o -f link address show dev $IF | sed 's/.*mtu //;s/ .*//'` # extract mtu 9000
@@ -41,30 +61,29 @@ if [ $# -gt 0 ]; then
     fi
 
     if [ "$CONF_MTU" != "$MTU" ]; then
-      echo "Jumbo frames not configured on interface $IF on `hostname`"
+      echo "    Host `hostname`: Jumbo frames not configured properly on interface $IF"
       exit 254
     fi
-
-		# check for jumbo frames working correctly as well as basic connectivity.
-		sudo ping -M do -c 2 -i 0.2 -s $PINGMTU  $i &> /dev/null
-		if [ $? -eq 1 ]; then	# 1 == error exists
-			echo $PINGOUT
-			echo "WARNING: Host $i JUMBO FRAME ping error."
-			let WARN=$WARN+1
-			# jumbo frame ping failed, let's see if we can ping with normal mtu
-			#sudo ping -c 10 -i 0.2 -q $i &> /dev/null
-			#if [ $? -eq 1 ]; then
-			#	echo "ERROR: Host $i general ping error."
-			#	let ERRORS=$ERRORS+1
-			#else
-			#	echo "Host $i non-jumbo ping test passed."
-			#fi
-		else
-			echo "Host $i JUMBO ping test passed."
-		fi
+	# check for jumbo frames working correctly as well as basic connectivity.
+	sudo ping -M do -c 2 -i 0.2 -s $PINGMTU  $i &> /dev/null
+	if [ $? -eq 1 ]; then	# 1 == error exists
+		echo $PINGOUT
+		echo "    Host $i JUMBO FRAME ping error."
+		let WARN=$WARN+1
+		# jumbo frame ping failed, let's see if we can ping with normal mtu
+		#sudo ping -c 10 -i 0.2 -q $i &> /dev/null
+		#if [ $? -eq 1 ]; then
+		#	echo "ERROR: Host $i general ping error."
+		#	let ERRORS=$ERRORS+1
+		#else
+		#	echo "Host $i non-jumbo ping test passed."
+		#fi
+	else
+		echo "        Host $i JUMBO ping test passed."
+	fi
 	done
 else
-	echo "No hosts specified, skipping ssh connectivity test."
+	echo "No hosts specified, skipping ping/jumbo frame connectivity test."
 fi
 
 #echo "There were $ERRORS failures"

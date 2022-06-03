@@ -14,7 +14,7 @@ fi
 numa_set=`cat /proc/sys/kernel/numa_balancing`
 if [ "$numa_set" -eq "1" ]; then
 	write_log "Numa balancing is enabled in the current running kernel configuration, it is generally recommended to disable this setting by entering the following command"
-	write_log "echo 0 > /proc/sys/kernel/numa_balancing && echo "kernel.numa_balancing=0" >> /etc/sysctl.conf"
+	write_log "    echo 0 > /proc/sys/kernel/numa_balancing && echo kernel.numa_balancing=0 >> /etc/sysctl.conf"
 	ret="254"
 
 	# Fix it?

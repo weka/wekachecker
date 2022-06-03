@@ -5,7 +5,6 @@ SCRIPT_TYPE="parallel"
 
 # General requirement is to have time synced for all Weka.IO cluster nodes, since this script is running as standalone on per node basis, it would check if there is NTP running and if time is synced properly
 
-echo $PATH
 CHRONY=0
 NTP=0
 
@@ -27,6 +26,7 @@ elif [ $NTP -eq 1 ]; then
 	write_log "NTP is installed"
 else
 	write_log "Neither Chrony nor NTP are installed"
+	write_log "    PATH: $PATH"
 fi
 
 CHRONYGOOD=0

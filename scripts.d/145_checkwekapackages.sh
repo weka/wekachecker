@@ -17,14 +17,11 @@ if [ "$DIST" == "redhat" ]; then
                              "rpcbind" \
                              "xfsprogs" \
                              "kernel-devel" )
-	#red_hat_pkg_list_weka=( "elfutils-libelf-devel" "glibc" "glibc-headers" "glibc-devel" \
-	#	"gcc" "make" "perl" "rpcbind" "xfsprogs" "kernel-devel" )
-
 
 	for i in ${red_hat_pkg_list_weka[@]}; do
 		rpm -q $i &> /dev/null
 		if [ $? -eq 1 ]; then
-			write_log "Package $i is REQUIRED for proper weka installation"
+			write_log "    Package $i is REQUIRED for proper weka installation"
 			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi
@@ -46,13 +43,11 @@ else
 	write_log "Running on top of Debian based system (Ubuntu)"
 	debian_pkg_list_weka=( "libelf-dev" "linux-headers-$(uname -r)" "gcc" "make" "perl" "python2-minimal" "rpcbind" \
             "xfsprogs" )
-	#debian_pkg_list_weka=( "elfutils" "libelf-dev" "linux-libc-dev" "glibc-source" "make" "perl" "rpcbind" \
-	#	"elfutils" "xfsprogs" "kernel-devel")
 
 	for i in ${debian_pkg_list_weka[@]}; do
 		dpkg -l | awk {'print $2'} | grep -i $i &> /dev/null
 		if [ $? -eq 1 ]; then
-			write_log "Package $i is missing for proper weka installation"
+			write_log "    Package $i is REQUIRED for proper weka installation"
 			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi

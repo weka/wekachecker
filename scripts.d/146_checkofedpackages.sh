@@ -16,7 +16,7 @@ if [ "$DIST" == "redhat" ]; then
 		for i in ${red_hat_pkg_list_ofed[@]}; do
 			rpm -q $i &> /dev/null
 			if [ $? -eq 1 ]; then
-				write_log "Package $i is REQUIRED for proper OFED installation"
+				write_log "    Package $i is REQUIRED for proper OFED installation"
 				ret="1" # FAIL
                 install_needed="$install_needed $i"
 			fi
@@ -42,7 +42,7 @@ else
 	for d in ${debian_pkg_list_ofed[@]}; do
 		dpkg -l | awk {'print $2'} | grep -i $d &> /dev/null
 		if [ $? -eq 1 ]; then
-			write_log "Package $d is REQUIRED for proper OFED installation"
+			write_log "    Package $d is REQUIRED for proper OFED installation"
 			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi

@@ -9,37 +9,40 @@ if [ $? -eq 1 ]; then
 	if [ -f /etc/os-release ]; then
 		if grep "Amazon Linux" /etc/os-release > /dev/null; then
 			OS_DISTRO="aws"
-		fi
-		if grep "2017.09" /etc/os-release > /dev/null; then
-			OS='aws1709'
-		fi
-		if grep "2017.03" /etc/os-release > /dev/null; then
-			OS='aws1703'
-		fi
-		if grep "Amazon Linux 2" /etc/os-release > /dev/null; then
-			OS='aws1712'
-		fi
-		if grep "2017.12" /etc/os-release > /dev/null; then
-			OS='aws1712'
-		fi
-		if grep "2018.03" /etc/os-release > /dev/null; then
-			OS='aws1803'
-		fi
+			if grep "2017.09" /etc/os-release > /dev/null; then
+				OS='aws1709'
+			fi
+			if grep "2017.03" /etc/os-release > /dev/null; then
+				OS='aws1703'
+			fi
+			if grep "Amazon Linux 2" /etc/os-release > /dev/null; then
+				OS='aws1712'
+			fi
+			if grep "2017.12" /etc/os-release > /dev/null; then
+				OS='aws1712'
+			fi
+			if grep "2018.03" /etc/os-release > /dev/null; then
+				OS='aws1803'
+			fi
 		elif grep "SUSE Linux Enterprise" /etc/os-release > /dev/null; then
 			OS_DISTRO="suse"
-		if grep "SUSE Linux Enterprise Server.*12" /etc/os-release > /dev/null; then
-			OS='suse12'
+			if grep "SUSE Linux Enterprise Server.*12" /etc/os-release > /dev/null; then
+				OS='suse12'
+			fi
 		fi
 		if [ -z $OS_DISTRO ] && [ -z $OS ]; then
 			write_log "OS dist $OS_DISTRO, release $OS is supported"
 			ret="0"
 		fi
 	else
-		write_log "Could not find hostnamectl utility, unable to check OS version properly"
+		write_log "Could not find hostnamectl util or os-release file, unable to check OS version properly"
 		ret="1"
 	fi
 else
 	dist=`hostnamectl | grep -i operating | awk {'print $3'}`
+	if [ $dist == 'Red' ]; then
+		dist='Redhat'
+	fi
 	osver=`hostnamectl | grep -i operating | awk -F: {'print $2" "$3" "$4'} | sed 's/ //g' | sed 's/[a-zA-Z ]//g' | sed 's/()//g'`
 	if [ -z $osver ]; then
 		write_log "OS release number could not be detected, setting it as 0"
@@ -47,7 +50,7 @@ else
 	fi
 	
 	case $dist in
-		red*|cent*|Cent*|Red* ) # need to get proper version running
+		red*|cent*|Cent*|Red* ) # need to get proper version 
 			if [ ! -f /etc/redhat-release ]; then
 				osver="0"
 			else
@@ -58,7 +61,7 @@ else
 
 	# Got some dist and osver strings in
 	if [ -z $dist ] && [ -z $osver ]; then
-        	echo "Could not find Dist or OS version running"
+        	echo "Could not find Dist or OS version"
         	ret="1"
 	else
         	# Checking if the version and OS are supported by Weka.IO requirements
@@ -66,37 +69,37 @@ else
         	check_osver=`echo $osver | sed 's/[a-zA-Z ]//g'`
         	case $check_dist in
 			debian) case $check_osver in
-				9.7* | 9.8* ) write_log "OS $check_dist and version $check_osver are supported"
+				9.7* | 9.8* ) write_log "OS $check_dist version $check_osver is supported"
 					ret="0"
 					;;
-				*) write_log "OS $check_dist and version $check_osver are not supported"
+				*) write_log "OS $check_dist version $check_osver is not supported"
 					ret="1"
 					;;
 			esac
                         ;;
 			red*|cent*) case $check_osver in
-				7.6* | 7.7* | 7.8* | 7.9* | 8.0* | 8.1* | 8.2* | 8.3* ) write_log "OS $check_dist and version $check_osver are supported"
+				7.6* | 7.7* | 7.8* | 7.9* | 8.0* | 8.1* | 8.2* | 8.3* ) write_log "OS $check_dist version $check_osver is supported"
 					ret="0"
 					;;
-				*) write_log "OS $check_dist and version $check_osver are not supported"
+				*) write_log "OS $check_dist version $check_osver is not supported"
 					ret="1"
 					;;
 			esac
 			;;
 			aws*|amazon*|Amazon*) case $check_osver in
-				1703 | 1709 | 1712 | 1803 | 2 | Linux ) write_log "OS $check_dist and version $check_osver are supported"
+				1703 | 1709 | 1712 | 1803 | 2 | Linux ) write_log "OS $check_dist version $check_osver is supported"
 					ret="0"
 					;;
-				*) write_log "OS $check_dist and version $check_osver are not supported"
+				*) write_log "OS $check_dist version $check_osver is not supported"
 					ret="1"
 					;;
 			esac
 			;;
 			ubuntu*) case $check_osver in
-				18* | 20* ) write_log "OS $check_dist and version $check_osver are supported"
+				18* | 20* ) write_log "OS $check_dist version $check_osver is supported"
 					ret="0"
 					;;
-				*) write_log "OS $check_dist and version $check_osver are not supported"
+				*) write_log "OS $check_dist version $check_osver is not supported"
 					ret="1"
 					;;
 			esac

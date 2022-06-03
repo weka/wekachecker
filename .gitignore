@@ -1,3 +1,4 @@
 venv/**
 test_results.json
 __pycache__/**
+test_results.txt

@@ -23,6 +23,7 @@ with open( args.json_input_file ) as fp:
             #print( test_results )
             scriptname = os.path.basename(scriptname)
             returnCode = test_results[0]
+            msg = test_results[1]
             result = returnCodes[returnCode]
             if returnCode != 0:
-                print( scriptname + ": " + server + ": " + result + ': ' + test_results[1] )
+                print( scriptname + ": " + server + ": " + result + ': ' + msg )
