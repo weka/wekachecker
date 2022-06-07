@@ -10,7 +10,8 @@ remove_needed=""
 if [ "$DIST" == "redhat" ]; then
 	write_log "Running on Red Hat based system"
 
-	red_hat_pkg_list_ofed=( "pciutils" "gtk2" "atk" "cairo" "gcc-gfortran" "tcsh" "lsof" "tcl" "tk" )
+	red_hat_pkg_list_ofed=( "pciutils" "gtk2" "atk" "cairo" "gcc-gfortran" 
+                            "tcsh" "lsof" "tcl" "tk" )
 
 	if [ ! -d /etc/amazon ]; then	# Amazon does not use OFED
 		for i in ${red_hat_pkg_list_ofed[@]}; do
@@ -37,7 +38,8 @@ if [ "$DIST" == "redhat" ]; then
 
 else
 	write_log "Running on Debian based system (Ubuntu)"
-	debian_pkg_list_ofed=( "pciutils" "gtk2" "atk" "cairo" "python-libxml2" "tcsh" "lsof" "tcl" "tk" )
+	debian_pkg_list_ofed=( "pciutils" "gtk2" "atk" "cairo" "python-libxml2" \
+                            "tcsh" "lsof" "tcl" "tk" )
 
 	for d in ${debian_pkg_list_ofed[@]}; do
 		dpkg -l | awk {'print $2'} | grep -i $d &> /dev/null

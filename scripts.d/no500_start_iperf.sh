@@ -6,7 +6,7 @@ SCRIPT_TYPE="parallel"
 which iperf &> /dev/null
 if [ $? == 1 ]; then
     write_log "ERROR: iperf not installed"
-    exit -1
+    exit "255"
 fi
 
 # Put your stuff here

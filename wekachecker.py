@@ -187,23 +187,19 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     for host in args.servers:
         remote_servers.append(RemoteServer(host))
 
-    # make sure credentials work on the first server, assume they'll work everywhere...
-    print(f"checking connectivity to {remote_servers[0]}")
-    remote_servers[0].connect()
-    print(f"connectivity successful, copying credentials to other servers")
-
-    # if they had to provide a user/password, copy it to other remote_servers...
-    if len(remote_servers[0].password) > 0:
-        user = remote_servers[0].user
-        password = remote_servers[0].password
-        for server in remote_servers:
-            server.user = user
-            server.password = password
-
-    print(f"opening ssh sessions to all servers")
+    # print(f"opening ssh sessions to all servers")
 
     # open ssh sessions to the servers - errors are in workers[<servername>].exc
-    parallel(remote_servers, RemoteServer.connect)
+    # loop through all rather than parallel because 
+    # some may be passwordless, others not.   If any are not, assumes the rest
+    # will use the same user/pw
+    user, pw = None, None
+    for server in remote_servers:
+        if pw != None:
+            server.user, server.password = user, pw
+        server.connect()
+        if len(server.password) > 0 and server.password != pw:
+            user, pw = server.user, server.password
 
     errors = False
     for server in remote_servers:
@@ -211,6 +207,8 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
             # we had an error connecting
             print(f"Error connecting to {server}")
             errors = True
+        #else:
+        #    server.run("sudo /bin/bash")
     if errors:
         sys.exit(1)
 

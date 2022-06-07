@@ -3,6 +3,7 @@
 DESCRIPTION="Check if CPU has AES enabled and supported"
 SCRIPT_TYPE="parallel"
 
+ret="1"
 # Check if current CPU has AES enabled and supported
 res=`grep -m1 -o aes /proc/cpuinfo`
 if [ -z $res ]; then

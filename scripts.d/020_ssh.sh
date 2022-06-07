@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DESCRIPTION="Check passwordless ssh to all hosts"
+DESCRIPTION="Check ssh to all hosts"
 # script type is single, parallel, or sequential
 SCRIPT_TYPE="single"
 

@@ -41,7 +41,8 @@ if [ "$DIST" == "redhat" ]; then
 
 else
 	write_log "Running on Debian based system (Ubuntu)"
-	debian_pkg_list_weka=( "libelf-dev" "linux-headers-$(uname -r)" "gcc" "make" "perl" "python2-minimal" "rpcbind" \
+	debian_pkg_list_weka=( "libelf-dev" "linux-headers-$(uname -r)" "gcc" \
+            "make" "perl" "python2-minimal" "rpcbind" \
             "xfsprogs" )
 
 	for i in ${debian_pkg_list_weka[@]}; do
