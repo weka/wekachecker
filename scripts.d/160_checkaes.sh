@@ -7,10 +7,10 @@ ret="1"
 # Check if current CPU has AES enabled and supported
 res=`grep -m1 -o aes /proc/cpuinfo`
 if [ -z $res ]; then
-	write_log "Running CPU doesn't have AES supported or enabled"
+	write_log "`hostname` CPU doesn't have AES supported or enabled"
 	ret="1"
 else
-	write_log "Running CPU has AES supported and enabled"
+	write_log "`hostname` CPU supports AES and it is enabled"
 	ret="0"
 fi
 

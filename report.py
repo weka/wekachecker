@@ -12,13 +12,21 @@ def process_json(infile, outfile, print_stdout=True):
         results = json.load( fp )
     with open (outfile, 'w') as of:
         for scriptname, server_dict in results.items():
+            scriptname = os.path.basename(scriptname)
+            m = f"{scriptname}:\n"
+            if print_stdout:
+                print(m)
+            of.write(m)
             for server, test_results in server_dict.items():
-                scriptname = os.path.basename(scriptname)
                 returnCode = test_results[0]
                 msg = test_results[1]
                 result = returnCodes[returnCode]
                 if returnCode != 0:
-                    m = f"{scriptname}: {server}: {result}: {msg}\n"
+                    msg = msg.splitlines()
+                    spaces = '      '
+                    msg = [f"{spaces}{l}\n" for l in msg]
+                    msg[0] = msg[0][len(spaces)-1:]
+                    m = f"    {server}:\t{result}:"+"".join(msg)
                     if print_stdout:
                         print(m)
                     of.write(m)

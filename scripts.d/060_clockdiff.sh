@@ -41,10 +41,10 @@ do
 	DIFF=`echo $RESULT | awk '{ print $2 + $3 }'`
 	if [ $DIFF -lt 0 ]; then let DIFF="(( 0 - $DIFF ))"; fi
 	if [ $DIFF -gt 10 ]; then # up to 10ms is allowed
-		echo "    Host $i is not in timesync: time diff is $DIFF ms"
+		echo "    FAIL: Host $i is not in timesync: time diff is $DIFF ms"
 		ret="1"
 	else
-		echo "        Host $i timesync ok; diff is $DIFF"
+		echo "        OK: Host $i timesync ok; diff is $DIFF"
 	fi
 done
 

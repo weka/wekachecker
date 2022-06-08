@@ -30,11 +30,13 @@ fi
 
 let ERRORS=0
 let WARN=0
+IFLAST="none"
+IFHW="none"
 #
 # check ssh connectivity, if given hostnames/ips on command line
 #
 if [ $# -gt 0 ]; then
-	echo
+	echo Running from `hostname`
 	for i in $*
 	do
 	  # resolve the name, in case we have a name, not an ip addr
@@ -44,10 +46,7 @@ if [ $# -gt 0 ]; then
 	  # determine which interface will be used to get to this address
 	  IFS=' ';RT=(`ip -o route get $DESTIPADDR`)
 	  IF=`echo ${RT[*]} | grep -oP "dev \K\S*"`
-	  if [ ${RT[1]} == "via" ]; then
-	  	echo "    Destination $DESTIPADDR is routed via gw ${RT[2]} on dev $IF"
-		WARN=$WARN+1
-	  fi
+	  if [ $IF != $IFLAST ]; then IFLAST=$IF; IFHW="none"; fi
 	  DEVINFO=`ip -o link show dev $IF`
 	  LINKTYPE=`echo $DEVINFO | grep -oE "(ether|infiniband|loopback)"` # link type
 	  CONF_MTU=`echo $DEVINFO | grep -oP "mtu \K[0-9]*"` # extract mtu 
@@ -55,7 +54,15 @@ if [ $# -gt 0 ]; then
 	  # LINK should now be either "ether" or "infiniband" or "loopback"
 	  if [ "$LINKTYPE" == "loopback" ]; then
 	    continue  # skip the loopback interface (no sense in pinging myself)
-      elif [ "$LINKTYPE" == "ether" ]; then
+	  fi
+	  if [ ${RT[1]} == "via" ]; then
+	  	echo "    Destination $DESTIPADDR is routed via gw ${RT[2]} on dev $IF"
+	    if [ $IFHW == "none" ]; then IFHW=`lshw -class network -short | grep $IF`; fi
+		echo "          Interface HW: $IFHW"
+		echo "          Is routed destination intentional?"
+		let WARN=$WARN+1
+	  fi
+      if [ "$LINKTYPE" == "ether" ]; then
 	    MTU="9000"
 	    PINGMTU="8972"
       elif [ "$LINKTYPE" == "infiniband" ]; then
@@ -63,12 +70,16 @@ if [ $# -gt 0 ]; then
 	    PINGMTU="4064"
       else
         echo "Error determining target MTU for $LINKTYPE - $DEVINFO"
-	    WARN=$WARN+1
+	    if [ $IFHW == "none" ]; then IFHW=`lshw -class network -short | grep $IF`; fi
+		echo "          Interface HW: $IFHW"
+	    let WARN=$WARN+1
       fi
 
       if [ "$CONF_MTU" != "$MTU" ]; then
-        	echo "    Host `hostname`: MTU not $MTU on interface $IF (for ping to $DESTIPADDR)"
-			echo "        MTU on $IF is $CONF_MTU.   Is $IF a dataplane interface?"
+        	echo "    FAIL: `hostname` interface $IF MTU is $CONF_MTU not $MTU (for ping to $DESTIPADDR)"
+	    	if [ $IFHW == "none" ]; then IFHW=`lshw -class network -short 2> /dev/null | grep $IF`; fi
+			echo "          Interface HW: $IFHW"
+			echo "          Is $IF a dataplane interface?"
         	exit "1"
       fi
 	  # check for jumbo frames working correctly as well as basic connectivity.
@@ -76,9 +87,11 @@ if [ $# -gt 0 ]; then
 	  if [ ! $? -eq 0 ]; then	# change to not eq 0
 		echo $PINGOUT
 		echo "    Host $i JUMBO FRAME ping error over $IF."
+		echo "          Interface HW: $IFHW"
+		echo "          MTU set properly on $IF - check for incorrect MTU on all ports on path to $DESTIPADDR"
 		let WARN=$WARN+1
 	  else
-		echo "        Host $i JUMBO ping test passed over $IF."
+		echo "        OK: Host $i JUMBO ping test passed over $IF."
 	  fi
 	done
 else

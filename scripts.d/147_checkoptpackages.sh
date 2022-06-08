@@ -49,7 +49,7 @@ else
 		dpkg -l | awk {'print $2'} | grep -i $e &> /dev/null
 		if [ $? -eq 1 ]; then
 			write_log "    Package $e is missing for RECOMMENDED installation for Weka runtime"
-			ret="1" # FAIL
+			ret="254"   # WARNING
             install_needed="$install_needed $i"
 		fi
 	done
