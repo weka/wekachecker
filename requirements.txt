@@ -1,6 +1,8 @@
 pip>=21.3.1
-pip-chill
-colorama
-rust
-setuptools-rust
-wekapyutils
+wheel
+colorama>=0.4.4
+pip-chill>=1.0.1
+pyinstaller>=4.10
+rust>=0.1.1
+setuptools-rust>=1.1.2
+wekapyutils>=0.9.9

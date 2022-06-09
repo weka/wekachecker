@@ -8,14 +8,12 @@ import os
 import sys
 import report
 from contextlib import contextmanager
-
 from colorama import Fore
+from wekapyutils.wekassh import RemoteServer, parallel, pdsh
+from wekapyutils.wekalogging import configure_logging, register_module, DEFAULT
 
 #from wekalogging import configure_logging
 #from wekassh import RemoteServer, parallel, pdsh
-
-from wekapyutils.wekassh import RemoteServer, parallel, pdsh
-from wekapyutils.wekalogging import configure_logging, register_module, DEFAULT
 
 # get root logger
 log = logging.getLogger()
