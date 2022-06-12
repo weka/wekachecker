@@ -23,7 +23,6 @@ Many small tweaks
 Optional arguments:
   * Run with -c to restrict tests to the cluster-wide tests (ping, ssh, and timesync tests)
   * Run with -s to restrict tests to the server-specific tests (most of the tests)
-  * Run with -p to restrict tests to the iperf network performance tests
   
-  optional arguments may be combined.  For example, "-c -s"
+  optional arguments may be combined.  For example, "-c -s" - default is both.
   
