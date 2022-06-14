@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 import report
+import subprocess
 from contextlib import contextmanager
 from colorama import Fore
 from wekapyutils.wekassh import RemoteServer, parallel, pdsh
@@ -195,6 +196,13 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     for server in remote_servers:
         if pw != None:
             server.user, server.password = user, pw
+        ot = subprocess.PIPE
+        p = subprocess.Popen(["ping", "-c1", server._hostname], stdout=ot, stderr=ot)
+        pstdout, pstderr = p.communicate()
+        if p.returncode > 0: 
+            announce(f"Unable to ping {server._hostname}; skipping connect attempt\n")
+            server.exc = Exception("Ping failed.")
+            continue
         server.connect()
         if len(server.password) > 0 and server.password != pw:
             user, pw = server.user, server.password
@@ -203,7 +211,7 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     for server in remote_servers:
         if server.exc is not None:
             # we had an error connecting
-            print(f"Error connecting to {server}")
+            print(f"Error connecting to {server}: {server.exc}; aborting")
             errors = True
         #else:
         #    server.run("sudo /bin/bash")
