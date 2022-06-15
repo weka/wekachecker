@@ -36,7 +36,7 @@ let LINKTYPEERRORS=0
 let WARNs=0
 IFLAST="none"
 IFHW=""
-let PASSED=()
+PASSED=()
 #
 # check ssh connectivity, if given hostnames/ips on command line
 #
