@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DESCRIPTION="Dataplane IP Ping/Jumbo Frames/Routing test"
+DESCRIPTION="Dataplane IP Jumbo Frames/Routing test"
 # script type is single, parallel, or sequential
 SCRIPT_TYPE="single"
 
@@ -36,6 +36,7 @@ let LINKTYPEERRORS=0
 let WARNs=0
 IFLAST="none"
 IFHW=""
+let PASSED=()
 #
 # check ssh connectivity, if given hostnames/ips on command line
 #
@@ -47,8 +48,8 @@ if [ $# -gt 0 ]; then
 	  QUICKPING=`ping -c1 $i`
 	  if [ $? -gt 0 ]; then
 	      PINGERRORS=$PINGERRORS+1
-		  echo "FAIL: Unable to ping $i"
-		  echo "    $QUICKPING"
+		  echo "   *FAIL: Unable to ping $i"
+		  echo "        $QUICKPING"
 		  continue
 	  fi 
       IPRESOLVED=`ping -c1 $i | head -1 | cut '-d ' -f3`
@@ -58,6 +59,7 @@ if [ $# -gt 0 ]; then
 	  IFS=' ';RT=(`ip -o route get $DESTIPADDR`)
 	  IF=`echo ${RT[*]} | grep -oP "dev \K\S*"`
 	  SRC=`echo ${RT[*]} | grep -oP "src \K\S*"`
+	  VIA=`echo ${RT[*]} | grep -oP "via \K\S*"`
 	  if [ $IF != $IFLAST ]; then IFLAST=$IF; IFHW=""; fi
 	  DEVINFO=`ip -o link show dev $IF`
 	  LINKTYPE=`echo $DEVINFO | grep -oE "(ether|infiniband|loopback)"` # link type
@@ -77,8 +79,8 @@ if [ $# -gt 0 ]; then
 	    let LINKTYPEERRORS=$LINKTYPEERRORS+1
 		continue
       fi
-	  if [ ${RT[1]} == "via" ]; then
-	  	echo "    Ping from `hostname` to $DESTIPADDR is routed via gateway ${RT[2]} on dev $IF (src ip $SRC)"
+	  if [ ! -z "$VIA" ]; then
+	  	echo "    WARN: `hostname` to $DESTIPADDR routes via gateway $VIA from dev $IF (src ip $SRC)"
 		if [ $ROUTEWARNS -eq 0 ]; then
 			echo "           Is $IF a dataplane interface?  Is routed dataplane path intentional? "
 	    	if [ -z "$IFHW" ]; then IFHW=`lshw -class network -short  2> /dev/null | grep $IF`; fi
@@ -89,31 +91,37 @@ if [ $# -gt 0 ]; then
 	  fi
  
       if [ "$CONF_MTU" != "$MTU" ]; then
-        	echo "    FAIL: `hostname` interface $IF MTU is $CONF_MTU not $MTU (for ping from $SRC to $DESTIPADDR)"
-			echo "          Is $IF a dataplane interface?"
 			let LOCALMTUERRORS=$LOCALMTUERRORS+1
-	    	if [ -z "$IFHW" ]; then IFHW=`lshw -class network -short 2> /dev/null | grep $IF`; fi
-			IFHWA=($IFHW)
-			echo "             $IF hardware: \"${IFHWA[@]:3}\""
+        	echo "   *FAIL: `hostname` interface $IF MTU is $CONF_MTU not $MTU (type '$LINKTYPE', src: $SRC, dest: $DESTIPADDR)"
+	    	if [ -z "$IFHW" ]; then 
+				IFHW=`lshw -class network -short 2> /dev/null | grep $IF`; 
+				echo "          Is $IF a dataplane interface?"
+				IFHWA=($IFHW)
+				echo "             $IF hardware: \"${IFHWA[@]:3}\""
+			fi
 			continue
       fi
 	  # check for jumbo frames working correctly as well as basic connectivity.
 	  sudo ping -M 'do' -c 2 -i 0.2 -s $PINGMTU  $i &> /dev/null
 	  if [ ! $? -eq 0 ]; then	# change to not eq 0
 		echo $PINGOUT
-		echo "    Host $i JUMBO FRAME packet test error over $IF."
+		echo "   *FAIL: Host $i JUMBO FRAME packet test error over $IF."
 		let JUMBOERRORS=$JUMBOERRORS+1
 	    if [ -z "$IFHW" ]; then IFHW=`lshw -class network -short 2> /dev/null | grep $IF`; fi
 		echo "          MTU set properly on $IF - check for incorrect MTU on entire path from $SRC to $DESTIPADDR"
 		IFHWA=($IFHW)
 		echo "             $IF hardware: \"${IFHWA[@]:3}\""
 	  else
-		echo "        OK: Host $i JUMBO ping test from $SRC to $DESTIPADDR ok over $IF."
+	    PASSED+=("      OK: `hostname` (interface $IF, ip $SRC) to $DESTIPADDR")
 	  fi
 	done
 else
 	echo "No hosts specified, skipping ping/jumbo frame connectivity test."
 fi
+
+for m in "${PASSED[@]}"; do
+    echo "$m"
+done
 
 if [ $PINGERRORS -gt 0 ]; then
     echo "$PINGERRORS hosts unreachable; aborting tests"
@@ -122,10 +130,10 @@ fi
 if [ $JUMBOERRORS -gt 0 ] || [ $LOCALMTUERRORS -gt 0 ] || [ $LINKTYPEERRORS -gt 0 ]; then
     let E=$JUMBOERRORS+$LOCALMTUERRORS+$LINKTYPEERRORS
 #    echo "    ($E jumbo ping errors)"
-	exit "1"
+	exit "1" # jumbo frames not enabled/working on all, so error, not warn
 fi
 
 if [ $WARN -gt 0 ] || [ $ROUTEWARNS -gt 0 ]; then
-	exit "254"		# jumbo frames not enabled/working on all, so warn
+	exit "254"		
 fi
 exit "0"

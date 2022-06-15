@@ -21,7 +21,7 @@ else
 			ret="0"
 		fi
 	else
-		write_log "HyperThreading/AMT is working and enabled, however it is recommended to disable HT/AMT"
+		write_log "HyperThreading/AMT is enabled; disabled is recommended"
 		ret="254"
 	fi
 fi

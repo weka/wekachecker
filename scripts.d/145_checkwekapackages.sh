@@ -6,8 +6,10 @@ SCRIPT_TYPE="parallel"
 # Checking if OS has the required packages installed for proper Weka.IO runtime
 install_needed=""
 
+missing_list=()
+
 if [ "$DIST" == "redhat" ]; then
-	write_log "Running on Red Hat based system"
+	write_log "REQUIRED packages missing for weka installation (Red Hat based system)"
 	red_hat_pkg_list_weka=( "elfutils-libelf-devel" \
                              "gcc" \
                              "glibc-headers" \
@@ -21,7 +23,7 @@ if [ "$DIST" == "redhat" ]; then
 	for i in ${red_hat_pkg_list_weka[@]}; do
 		rpm -q $i &> /dev/null
 		if [ $? -eq 1 ]; then
-			write_log "    Package $i is REQUIRED for proper weka installation"
+            missing_list+=($i)
 			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi
@@ -40,7 +42,7 @@ if [ "$DIST" == "redhat" ]; then
     fi
 
 else
-	write_log "Running on Debian based system (Ubuntu)"
+	write_log "REQUIRED packages missing for weka installation (Debian/Ubuntu based system)"
 	debian_pkg_list_weka=( "libelf-dev" "linux-headers-$(uname -r)" "gcc" \
             "make" "perl" "python2-minimal" "rpcbind" \
             "xfsprogs" )
@@ -48,7 +50,7 @@ else
 	for i in ${debian_pkg_list_weka[@]}; do
 		dpkg -l | awk {'print $2'} | grep -i $i &> /dev/null
 		if [ $? -eq 1 ]; then
-			write_log "    Package $i is REQUIRED for proper weka installation"
+            missing_list+=($i)
 			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi
@@ -67,4 +69,16 @@ else
     fi
 
 fi
+out=" : : : "
+for (( i=0; i<"${#missing_list[@]}"; i++ )); do
+    out+="${missing_list[$i]}: : "
+    n=i+1
+    mod=$((n%5))
+    if [[ $mod == "0" ]]; then
+        out+="\n : : : "
+    fi
+done
+printf "$out\n" | column -t -s ":"
+printf "\n"
+
 exit $ret

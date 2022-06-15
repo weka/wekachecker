@@ -2,31 +2,39 @@
 
 import json
 import argparse
-import sys
-import os
 
+def zfillIP4(host):   # returns zero filled IP4 if host is valid IP4.  otherwise returns host
+    result = [n.zfill(3) for n in host.split(".") if n.isdigit() and 0<=int(n)<=255]
+    if len(result) == 4:
+        return ".".join(result), True
+    else:
+        return host, False
+    
 def process_json(infile, outfile, print_stdout=True):
-    returnCodes = {0: "PASS", 1: "FAIL", 254: "WARN", 255: "HARDFAIL"}
-
+    returnCodes = {0: "PASS", 1: "*FAIL", 254: "WARN", 255: "*HARDFAIL"}
+    indent = ' ' * 6
     with open( infile ) as fp:
         results = json.load( fp )
     with open (outfile, 'w') as of:
-        for scriptname, server_dict in results.items():
-            scriptname = os.path.basename(scriptname)
-            m = f"{scriptname}:\n"
-            if print_stdout:
-                print(m)
-            of.write(m)
+        for scriptname_description, server_dict in results.items():
+            scriptname, description = scriptname_description.split(":")
+            first = True
+            header = f"\n{scriptname}:\n  {description}\n"
             for server, test_results in server_dict.items():
-                returnCode = test_results[0]
-                msg = test_results[1]
-                result = returnCodes[returnCode]
+                # server, _ = zfillIP4(server)
+                serverstr = f" {server + ': ':<17}"
+                returnCode, msg = test_results[0], test_results[1]
+                resultstr = returnCodes[returnCode]
                 if returnCode != 0:
-                    msg = msg.splitlines()
-                    spaces = '      '
-                    msg = [f"{spaces}{l}\n" for l in msg]
-                    msg[0] = msg[0][len(spaces)-1:]
-                    m = f"    {server}:\t{result}:"+"".join(msg)
+                    if first:
+                        first = False
+                        if print_stdout:
+                            print(header)
+                        of.write(header) 
+                    msg = [f"{indent}{l}\n" for l in msg.splitlines()]
+                    firstmsg = msg[0][len(indent)-1:]
+                    rest = msg[1:]
+                    m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
                     if print_stdout:
                         print(m)
                     of.write(m)

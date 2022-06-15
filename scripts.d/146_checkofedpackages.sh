@@ -7,8 +7,10 @@ SCRIPT_TYPE="parallel"
 install_needed=""
 remove_needed=""
 
+missing_list=()
+
 if [ "$DIST" == "redhat" ]; then
-	write_log "Running on Red Hat based system"
+	write_log "REQUIRED packages missing for OFED installation (Red Hat based system)"
 
 	red_hat_pkg_list_ofed=( "pciutils" "gtk2" "atk" "cairo" "gcc-gfortran" 
                             "tcsh" "lsof" "tcl" "tk" )
@@ -17,7 +19,7 @@ if [ "$DIST" == "redhat" ]; then
 		for i in ${red_hat_pkg_list_ofed[@]}; do
 			rpm -q $i &> /dev/null
 			if [ $? -eq 1 ]; then
-				write_log "    Package $i is REQUIRED for proper OFED installation"
+                missing_list+=($i)
 				ret="1" # FAIL
                 install_needed="$install_needed $i"
 			fi
@@ -37,14 +39,14 @@ if [ "$DIST" == "redhat" ]; then
     fi
 
 else
-	write_log "Running on Debian based system (Ubuntu)"
+	write_log "REQUIRED packages missing for OFED installation (Debian/Ubuntu based system)"
 	debian_pkg_list_ofed=( "pciutils" "gtk2" "atk" "cairo" "python-libxml2" \
                             "tcsh" "lsof" "tcl" "tk" )
 
 	for d in ${debian_pkg_list_ofed[@]}; do
 		dpkg -l | awk {'print $2'} | grep -i $d &> /dev/null
 		if [ $? -eq 1 ]; then
-			write_log "    Package $d is REQUIRED for proper OFED installation"
+            missing_list+=($d)
 			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi
@@ -63,4 +65,16 @@ else
   fi
 
 fi
+out=" : : : "
+for (( i=0; i<"${#missing_list[@]}"; i++ )); do
+    out+="${missing_list[$i]}: : "
+    n=i+1
+    mod=$((n%5))
+    if [[ $mod == "0" ]]; then
+        out+="\n : : : "
+    fi
+done
+printf "$out\n" | column -t -s ":"
+printf "\n"
+
 exit $ret

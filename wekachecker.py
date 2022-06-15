@@ -71,7 +71,9 @@ def run_scripts(workers, scripts, args, preamble):
             continue
 
         # saw that script we're going to run:
-        announce(find_value(script, "DESCRIPTION").ljust(60))
+        description = find_value(script, "DESCRIPTION")
+        resultkey = f"{os.path.basename(scriptname)}:{description}"
+        announce(description.ljust(60))
 
         script_type = find_value(script, "SCRIPT_TYPE")  # should be "single", "parallel", or "sequential"
 
@@ -82,9 +84,9 @@ def run_scripts(workers, scripts, args, preamble):
             server = workers[0]
             # run on a single server - doesn't matter which
             server.run(command)
-            if not scriptname in results:
-                results[scriptname] = {}
-            results[scriptname][str(server)] = [server.output.status,
+            if not resultkey in results:
+                results[resultkey] = {}
+            results[resultkey][str(server)] = [server.output.status,
                                                 server.output.stdout]
             max_retcode = server.output.status
 
@@ -93,9 +95,9 @@ def run_scripts(workers, scripts, args, preamble):
             for server in workers:
                 # run on all servers, but one at a time (sequentially)
                 server.run(command)
-                if not scriptname in results:
-                    results[scriptname] = {}
-                results[scriptname][str(server)] = [server.output.status,
+                if not resultkey in results:
+                    results[resultkey] = {}
+                results[resultkey][str(server)] = [server.output.status,
                                                     server.output.stdout]
 
                 # note if any failed/warned.
@@ -109,9 +111,9 @@ def run_scripts(workers, scripts, args, preamble):
             # create and start the threads
             pdsh(workers, command)
             for server in workers:
-                if not scriptname in results:
-                    results[scriptname] = {}
-                results[scriptname][str(server)] = [server.output.status,
+                if not resultkey in results:
+                    results[resultkey] = {}
+                results[resultkey][str(server)] = [server.output.status,
                                                     server.output.stdout]
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
