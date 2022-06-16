@@ -1,0 +1,15 @@
+# run this using ". activate_venv" 
+# to shorten from "source venv/bin/activate"
+#
+(return 0 2>/dev/null) && sourced=1 || sourced=0
+
+if [ $sourced == "0" ]; then
+   echo "This script must be sourced to work - exiting."
+   scriptname=`basename $0`
+   echo "Run with '. $scriptname' or 'source $scriptname'"
+elif [ ! -d "venv" ]; then
+   echo "This script must be sourced from a directory that contains a venv directory (created with 'python -m venv venv')"
+   echo "No 'venv' directory found - exiting."
+else
+   source venv/bin/activate
+fi
