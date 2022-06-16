@@ -33,7 +33,6 @@ let JUMBOERRORS=0
 let ROUTEWARNS=0
 let LOCALMTUERRORS=0
 let LINKTYPEERRORS=0
-let WARNs=0
 IFLAST="none"
 IFHW=""
 PASSED=()
@@ -133,7 +132,7 @@ if [ $JUMBOERRORS -gt 0 ] || [ $LOCALMTUERRORS -gt 0 ] || [ $LINKTYPEERRORS -gt 
 	exit "1" # jumbo frames not enabled/working on all, so error, not warn
 fi
 
-if [ $WARN -gt 0 ] || [ $ROUTEWARNS -gt 0 ]; then
+if [ $ROUTEWARNS -gt 0 ]; then
 	exit "254"		
 fi
 exit "0"
