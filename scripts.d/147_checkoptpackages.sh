@@ -44,7 +44,7 @@ else
 
 	debian_pkg_list_general=( "net-tools" "wget" "sg3-utils" "gdisk" "ntpdate" "ipmitool" "sysstat" "strace" \
         "tcpdump" "telnet" "nmap" "hwloc" "numactl" "python3" "pciutils" "lsof" "wget" "bind9-utils" \
-        "nvme-cli" "nfs-utils" "screen" "tmux" "git" "sshpass" "python-pip" "python3-pip" "lldpd" "bmon" "nload" \
+        "nvme-cli" "nfs-common" "screen" "tmux" "git" "sshpass" "python-pip" "python3-pip" "lldpd" "bmon" "nload" \
         "pssh" "pdsh" "iperf" "fio" "htop" )
 
 	for e in ${debian_pkg_list_general[@]}; do

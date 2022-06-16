@@ -20,7 +20,7 @@ else
 		# On Debian
 		count_rules=`sudo iptables -L -v -n | wc -l`
 		if [ "$count_rules" -ne "8" ]; then
-			write_log "Firewall has some extra rules setup, Weka.IO might not function properly, please see below ouput of iptables -L -v -n"
+			write_log "Firewall has extra rules setup; Weka.IO may not function properly. Please see below ouput of iptables -L -v -n"
 			running_rule=`sudo iptables -L -v -n`
 			write_log "$running_rule"
 			ret="1"

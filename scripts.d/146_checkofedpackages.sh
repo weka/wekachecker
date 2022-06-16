@@ -12,7 +12,7 @@ missing_list=()
 if [ "$DIST" == "redhat" ]; then
 	write_log "REQUIRED packages missing for OFED installation (Red Hat based system)"
 
-	red_hat_pkg_list_ofed=( "pciutils" "gtk2" "atk" "cairo" "gcc-gfortran" 
+	red_hat_pkg_list_ofed=( "pciutils" "cairo" "gcc-gfortran" 
                             "tcsh" "lsof" "tcl" "tk" )
 
 	if [ ! -d /etc/amazon ]; then	# Amazon does not use OFED
@@ -40,8 +40,8 @@ if [ "$DIST" == "redhat" ]; then
 
 else
 	write_log "REQUIRED packages missing for OFED installation (Debian/Ubuntu based system)"
-	debian_pkg_list_ofed=( "pciutils" "gtk2" "atk" "cairo" "python-libxml2" \
-                            "tcsh" "lsof" "tcl" "tk" )
+	debian_pkg_list_ofed=( "pciutils" "cairo" "python-libxml2" \
+                            "tcsh" "lsof" "tcl" "tk" "zlib1g-dev" "curl" )
 
 	for d in ${debian_pkg_list_ofed[@]}; do
 		dpkg -l | awk {'print $2'} | grep -i $d &> /dev/null
