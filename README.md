@@ -1,4 +1,4 @@
-# wekachecker source
+# wekachecker (source/build repository)
 
 
 NOTE: please refer to weka/tools/wekachecker instead for the binary version of this tool!!!!
