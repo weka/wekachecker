@@ -1,7 +1,8 @@
 # wekachecker (source/build repository)
 
 
-# NOTE: please use github.com/weka/tools/wekachecker for the binary version of this tool
+# NOTE: See github.com/weka/tools/wekachecker for the binary version of this tool
+
 # Do not run from this repository directly
 
 This repository is the source/build code for weka/tools/wekachecker
