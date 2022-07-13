@@ -1,9 +1,9 @@
-# sns-wekachecker
+# wekachecker source
 
 
-THIS VERSION IS DEPRECATED - please refer to weka/tools/wekachecker instead!!!!
+NOTE: please refer to weka/tools/wekachecker instead for the binary version of this tool!!!!
 
-
+This repository is the source/build code for weka/tools/wekachecker
 
 
 Validates hosts are ready to run Weka
