@@ -78,7 +78,7 @@ else
 			esac
                         ;;
 			red*|cent*) case $check_osver in
-				7.6* | 7.7* | 7.8* | 7.9* | 8.0* | 8.1* | 8.2* | 8.3* | 8.4* | 8.5*) write_log "OS $check_dist version $check_osver is supported"
+				7.6* | 7.7* | 7.8* | 7.9* | 8.0* | 8.1* | 8.2* | 8.3* | 8.4* | 8.5* | 8.6*) write_log "OS $check_dist version $check_osver is supported"
 					ret="0"
 					;;
 				*) write_log "OS $check_dist version $check_osver is not supported"
