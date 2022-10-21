@@ -24,25 +24,28 @@ else
         # There is locally mounted /opt/dir to seperate partition, which means weka should be in /opt
 	OPT_WEKA="yes"
 fi
-local_free_space=`df -h /opt/weka | tail -1 | awk {'print $4'} | sed 's/[a-zA-Z]//g' | sed 's/\.[0-9]//g'`
-num_of_cpus=`lscpu|grep "CPU(s):"|head -1 |awk {'print $2'}`
-num_of_sockets=`lscpu | grep -i "Socket" | tail -1 | awk {'print $2'}`
-num_of_threads=`lscpu | grep -i "Thread(s) per core" | cut -d: -f2 `
+
+# Using `--block-size` always round upwards to nearest integer, so get MiB and
+# convert to GiB and to 1 decimal place
+local_free_space=$(df --block-size M --output=avail /opt/weka | awk '!/Avail/ { gsub("M", ""); gsub(" ", ""); print ($0 / 1024)}')
+
+num_of_cpus=$(lscpu | awk '/^CPU\(s):/ { print $2 }')
+num_of_sockets=$(lscpu | awk '/^Socket\(s)/ { print $2 }')
+num_of_threads=$(lscpu | awk -F ':' '/^Thread\(s) per core:/ { gsub(" ", ""); print $2 }')
 num_of_cores=`echo $(($num_of_cpus/$num_of_threads/$num_of_sockets))`
 
 if [ "$num_of_cores" -le "19" ]; then
 	space_needed=`echo $((($num_of_cores*10)+26))`
-	space_missing=`echo $((-1*($local_free_space-$space_needed)))`
 else
 	space_needed=`echo $(((19*10)+26))`
-	space_missing=`echo $((-1*($local_free_space-$space_needed)))`
 fi
 
-if [ "$space_needed" -le "$local_free_space" ]; then
+enough_space=$(awk "BEGIN { if ($local_free_space >= $space_needed) print \"y\" }")
+if [ "$enough_space" = 'y' ]; then
 	write_log "There is enough space to run Weka.IO on this node"
 	ret="0"
 else
-	write_log "/opt/weka has only "$local_free_space"G free, but at least "$space_needed"G is recommended for $num_of_cores cores"
+	write_log "/opt/weka has only "$local_free_space"GiB free, but at least "$space_needed"GiB is recommended for $num_of_cores cores"
 	ret="254"
 fi
 
