@@ -56,6 +56,7 @@ else
   if [[ "$FIX" == "True" && "${needed_actions}" != "" ]]; then
       echo "--fix specified, attempting to install/remove packages"
       if [ "${install_needed}" != "" ]; then
+          sudo apt-get update
           sudo apt-get -y install ${install_needed}
           if [ $? -ne 0 ]; then
               echo "Failure while installing packages."
