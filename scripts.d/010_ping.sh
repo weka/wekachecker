@@ -18,7 +18,8 @@ if [ $? -eq 1 ]; then
 	if [ "$FIX" == "True" ]; then
 		echo "Fix requested. Installing ping"
 		if [ "$DIST" == "ubuntu" ]; then
-			sudo apt-get install iputils-ping
+			sudo apt-get update
+			sudo apt-get -y install iputils-ping
 		else
 			sudo yum -y install iputils
 		fi
