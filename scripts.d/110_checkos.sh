@@ -3,112 +3,104 @@
 DESCRIPTION="Check OS Release..."
 SCRIPT_TYPE="parallel"
 
-# Check OS version if there is redhat release file, if not, then lsb check, if no lsb, then hostnamectl
-which hostnamectl &> /dev/null
-if [ $? -eq 1 ]; then
-	if [ -f /etc/os-release ]; then
-		if grep "Amazon Linux" /etc/os-release > /dev/null; then
-			OS_DISTRO="aws"
-			if grep "2017.09" /etc/os-release > /dev/null; then
-				OS='aws1709'
-			fi
-			if grep "2017.03" /etc/os-release > /dev/null; then
-				OS='aws1703'
-			fi
-			if grep "Amazon Linux 2" /etc/os-release > /dev/null; then
-				OS='aws1712'
-			fi
-			if grep "2017.12" /etc/os-release > /dev/null; then
-				OS='aws1712'
-			fi
-			if grep "2018.03" /etc/os-release > /dev/null; then
-				OS='aws1803'
-			fi
-		elif grep "SUSE Linux Enterprise" /etc/os-release > /dev/null; then
-			OS_DISTRO="suse"
-			if grep "SUSE Linux Enterprise Server.*12" /etc/os-release > /dev/null; then
-				OS='suse12'
-			fi
-		fi
-		if [ -z $OS_DISTRO ] && [ -z $OS ]; then
-			write_log "OS dist $OS_DISTRO, release $OS is supported"
-			ret="0"
-		fi
-	else
-		write_log "Could not find hostnamectl util or os-release file, unable to check OS version properly"
-		ret="1"
-	fi
-else
-	dist=`hostnamectl | grep -i operating | awk {'print $3'}`
-	if [ $dist == 'Red' ]; then
-		dist='Redhat'
-	fi
-	osver=`hostnamectl | grep -i operating | awk -F: {'print $2" "$3" "$4'} | sed 's/ //g' | sed 's/[a-zA-Z ]//g' | sed 's/()//g'`
-	if [ -z $osver ]; then
-		write_log "OS release number could not be detected, setting it as 0"
-		osver="0"
-	fi
-	
-	case $dist in
-		red*|cent*|Cent*|Red* ) # need to get proper version 
-			if [ ! -f /etc/redhat-release ]; then
-				osver="0"
-			else
-				osver=`cat /etc/redhat-release | sed -e 's/.*[^0-9\.]\([0-9\.]\+\)[^0-9]*$/\1/'`
-			fi
-			;;
-	esac
+# Currently supported releases:
+## https://docs.weka.io/support/prerequisites-and-compatibility
 
-	# Got some dist and osver strings in
-	if [ -z $dist ] && [ -z $osver ]; then
-        	echo "Could not find Dist or OS version"
-        	ret="1"
-	else
-        	# Checking if the version and OS are supported by Weka.IO requirements
-        	check_dist=`echo $dist | sed 's/[a-zA-Z]/\L&/g'`
-        	check_osver=`echo $osver | sed 's/[a-zA-Z ]//g'`
-        	case $check_dist in
-			debian) case $check_osver in
-				9.7* | 9.8* ) write_log "OS $check_dist version $check_osver is supported"
-					ret="0"
-					;;
-				*) write_log "OS $check_dist version $check_osver is not supported"
-					ret="1"
-					;;
-			esac
-                        ;;
-			red*|cent*) case $check_osver in
-				7.6* | 7.7* | 7.8* | 7.9* | 8.0* | 8.1* | 8.2* | 8.3* | 8.4* | 8.5* | 8.6*) write_log "OS $check_dist version $check_osver is supported"
-					ret="0"
-					;;
-				*) write_log "OS $check_dist version $check_osver is not supported"
-					ret="1"
-					;;
-			esac
-			;;
-			aws*|amazon*|Amazon*) case $check_osver in
-				1703 | 1709 | 1712 | 1803 | 2 | Linux ) write_log "OS $check_dist version $check_osver is supported"
-					ret="0"
-					;;
-				*) write_log "OS $check_dist version $check_osver is not supported"
-					ret="1"
-					;;
-			esac
-			;;
-			ubuntu*) case $check_osver in
-				18* | 20* ) write_log "OS $check_dist version $check_osver is supported"
-					ret="0"
-					;;
-				*) write_log "OS $check_dist version $check_osver is not supported"
-					ret="1"
-					;;
-			esac
-			;;
-			*) write_log "OS type: $check_dist. This version of OS is currently unsupported by Weka.IO"
-				ret="1"
-				;;
-        	esac
-	fi
+source /etc/os-release
+
+# CentOS doesn't include subversion (e.g. 7.x) information in /etc/os-release,
+# so we set it from /etc/redhat-release
+# Format: CentOS Linux release 7.9.2009 (Core)
+if [ "$ID" = 'centos' ]; then
+	VERSION_ID=$(cat /etc/redhat-release)
+
+	# Remove everything before the number, leaving "7.9.2009 (Core)"
+	VERSION_ID=${VERSION_ID##*release }
+
+	# Remove everything from the date to the end, leaving "7.9"
+	VERSION_ID=${VERSION_ID%.*}
+
+# Ubuntu doesn't include subversion (e.g. 20.04.x) information in VERSION_ID in
+# /etc/os-release, so we set it from VERSION in /etc/os-release
+elif [ "$ID" = 'ubuntu' ]; then
+	# Remove everything after the number, leaving "20.04.3"
+	VERSION_ID=${VERSION%% *}
 fi
 
-exit $ret
+distro_not_found=0
+version_not_found=0
+unsupported_distro=0
+unsupported_version=0
+client_only=0
+
+case $ID in
+	'centos')
+		case $VERSION_ID in
+			'7.'[2-9]) ;;
+			'8.'[0-5]) ;;
+			'') version_not_found=1 ;;
+			*) unsupported_version=1 ;;
+		esac
+		;;
+
+	'rhel')
+		case $VERSION_ID in 
+			'7.'[2-9]) ;;
+			'8.'[0-6]) ;;
+			'') version_not_found=1 ;;
+			*) unsupported_version=1 ;;
+		esac
+		;;
+
+	'rocky')
+		case $VERSION_ID in 
+			'8.6') ;;
+			'') version_not_found=1 ;;
+			*) unsupported_version=1 ;;
+		esac
+		;;
+
+	# SLES Service Packs are registered as point releases, i.e. SLES 12 SP5 becomes "12.5"
+	'sles')
+		case $VERSION_ID in
+			'12.5') client_only=1 ;;
+			'15.2') client_only=1 ;;
+			'') version_not_found=1 ;;
+			*) unsupported_version=1 ;;
+		esac
+		;;
+
+	'ubuntu')
+		case $VERSION_ID in
+			'18.04.'[0-6]) ;;
+			'20.04.'[0-3]) ;;
+			'') version_not_found=1 ;;
+			*) unsupported_version=1 ;;
+		esac
+		;;
+
+	'') distro_not_found=1 ;;
+	*) unsupported_distro=1 ;;
+esac
+
+if [ "$distro_not_found" -eq 1 ]; then
+	write_log 'Distribution not found'
+	exit 1
+elif [ "$version_not_found" -eq 1 ]; then
+	write_log "$NAME detected but version not found"
+	exit 1
+elif [ "$unsupported_distro" -eq 1 ]; then
+	write_log "$NAME is not a supported distribution"
+	exit 1
+elif [ "$unsupported_version" -eq 1 ]; then
+	write_log "$NAME $VERSION_ID is not a supported version of $NAME"
+	exit 1
+else
+	if [ "$client_only" -eq 1 ]; then
+		write_log "$NAME $VERSION_ID is supported (for client only)"
+		exit 254
+	else
+		write_log "$NAME $VERSION_ID is supported"
+		exit 0
+	exit 0
+fi
