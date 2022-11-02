@@ -103,4 +103,5 @@ else
 		write_log "$NAME $VERSION_ID is supported"
 		exit 0
 	fi
+exit 0
 fi
