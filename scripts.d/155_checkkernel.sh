@@ -3,17 +3,37 @@
 DESCRIPTION="Check if kernel is supported..."
 SCRIPT_TYPE="parallel"
 
-# Checking if running kernel is supported by weka runtime
-current_kernel_result=`uname -r`
+# Spaces required around the value as we search for " x.x "
+weka_supported_kernels=$(echo ' '3.10 4.{4..19} 5.{3..4}' ')
+declare -A ubuntu_ga_kernel=(
+	['18.04']='4.15'
+	['20.04']='5.4'
+	['22.04']='5.15'
+)
+. /etc/os-release
+kernel=$(uname -r | cut -d '.' -f 1,2)
 
-# Supported kernel versions are: 2.6.32 - 3.10.* - 4.4.* and 4.15.*
-case $current_kernel_result in
-	3.10*|4.4*|4.5*|4.6*|4.7*|4.8*|4.9*|4.10*|4.11*|4.12*|4.13*|4.14*|4.15*|4.16*|4.17*|4.18*|4.19*|5.3*|5.4* ) 
-				write_log "Current running Kernel: $current_kernel_result is supported by Weka"
-					ret="0"
-					;;
-				*   ) write_log "Current running Kernel: $current_kernel_result is NOT supported by Weka"
-					ret="1"
-					;;
-esac
-exit $ret
+if [[ $weka_supported_kernels == *' '$kernel' '* ]]; then
+	# Warn if running Ubuntu LTS with HWE kernel
+	if [[ "$PRETTY_NAME" == Ubuntu*LTS ]] && [ "$kernel" != ${ubuntu_ga_kernel["$VERSION_ID"]} ]; then
+		write_log "Current running kernel ($kernel) is supported by Weka but is not the"
+		write_log "general availability (GA) kernel for Ubuntu $VERSION_ID. This machine"
+		write_log 'might be running the HWE kernel, and therefore the kernel version'
+		write_log "*might* change to a version unsupported by Weka during Ubuntu $VERSION_ID"
+		write_log 'updates. Visit https://ubuntu.com/about/release-cycle#ubuntu-kernel-release-cycle'
+		write_log 'to verify this, and if required, use'
+		write_log 'https://github.com/weka/tools/tree/master/preinstall/ubuntu-hwe-to-ga-kernel.sh'
+		write_log 'to fix this.'
+		ret=1
+
+	else
+		write_log "Current running kernel ($kernel) is supported by Weka"
+		ret=0
+	fi
+
+else
+	write_log "Current running kernel ($kernel) is NOT supported by Weka"
+	ret=1
+fi
+
+exit "$ret"
