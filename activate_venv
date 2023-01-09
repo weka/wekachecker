@@ -1,15 +1,68 @@
-# run this using ". activate_venv" 
-# to shorten from "source venv/bin/activate"
-#
-(return 0 2>/dev/null) && sourced=1 || sourced=0
+#!/bin/bash
 
-if [ $sourced == "0" ]; then
-   echo "This script must be sourced to work - exiting."
-   scriptname=`basename $0`
-   echo "Run with '. $scriptname' or 'source $scriptname'"
-elif [ ! -d "venv" ]; then
-   echo "This script must be sourced from a directory that contains a venv directory (created with 'python -m venv venv')"
-   echo "No 'venv' directory found - exiting."
-else
-   source venv/bin/activate
+(return 0 2> /dev/null) && sourced=1 || sourced=0
+if [ "$sourced" -eq 0 ]; then
+	script_name=$(basename "$0")
+	>&2 echo "This script must be sourced to work; exiting..."
+	>&2 echo "Run with \`. $script_name\` or \`source $script_name\`"
+	exit 1
 fi
+
+source /etc/os-release
+
+if [[ $ID_LIKE == *debian* ]]; then
+	packages='libbz2-dev liblzma-dev python3-venv'
+elif [[ $ID_LIKE == *rhel* ]]; then
+	packages='bzip2-devel xz-devel'
+fi
+
+venv=$(dirname "$(readlink -e "$BASH_SOURCE")")/venv/
+
+package_installed() {
+	case $ID_LIKE in
+		*debian*)
+			if [ "$(dpkg-query -s "$1" 2> /dev/null | awk '/Status/ { print $4 }')" = 'installed' ]; then
+				return 0
+			else
+				return 1
+			fi
+			;;
+
+		*rhel*) rpm -q "$1" &> /dev/null
+	esac
+}
+
+install_packages() {
+	case $ID_LIKE in
+		*debian*) sudo apt-get update && sudo apt-get -y install --no-install-recommends $@ ;;
+		*rhel*) sudo yum -y install $@ ;;
+	esac
+}
+
+setup_venv() {
+	python3 -m venv "$venv"
+	. "$venv"/bin/activate
+	pip3 install --upgrade pip
+	pip3 install wheel
+	pip3 install -r requirements.txt
+}
+
+main() {
+	for package in $packages; do
+		if ! package_installed "$package"; then
+			install_list="$install_list $package"
+		fi
+	done
+
+	if ! [ -z "$install_list" ]; then
+		install_packages $install_list
+	fi
+
+	if [ ! -d "$venv" ]; then
+		setup_venv
+	else
+		. "$venv"/bin/activate
+	fi
+}
+
+main $@
