@@ -9,18 +9,18 @@ ret="0"
 # Put your stuff here
 which clockdiff &> /dev/null
 if [ $? -eq 1 ]; then
-	if [ "$DIST" == "ubuntu" ]; then
+	if [[ $ID_LIKE == *debian* ]]; then
 		PACKAGE="iputils-clockdiff"
-	else
+	elif [[ $ID_LIKE == *rhel* ]]; then
 		PACKAGE="iputils"
 	fi
 	echo "clockdiff not found." 
 	if [ "$FIX" == "True" ]; then
 		echo "Fix requested. Installing clockdiff"
-		if [ "$DIST" == "ubuntu" ]; then
+		if [[ $ID_LIKE == *debian* ]]; then
 			sudo apt-get update
 			sudo apt-get -y install iputils-clockdiff
-		else
+		elif [[ $ID_LIKE == *rhel* ]]; then
 			sudo yum -y install iputils
 		fi
 		which clockdiff &> /dev/null

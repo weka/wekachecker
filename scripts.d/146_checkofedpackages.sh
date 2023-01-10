@@ -9,7 +9,7 @@ remove_needed=""
 
 missing_list=()
 
-if [ "$DIST" == "redhat" ]; then
+if [[ $ID_LIKE == *rhel* ]]; then
 	write_log "REQUIRED packages missing for OFED installation (Red Hat based system)"
 
 	red_hat_pkg_list_ofed=( "pciutils" "cairo" "gcc-gfortran" 
@@ -38,7 +38,7 @@ if [ "$DIST" == "redhat" ]; then
         fi
     fi
 
-else
+elif [[ $ID_LIKE == *debian* ]]; then
 	write_log "REQUIRED packages missing for OFED installation (Debian/Ubuntu based system)"
 	debian_pkg_list_ofed=( "pciutils" "cairo" "python-libxml2" \
                             "tcsh" "lsof" "tcl" "tk" "zlib1g-dev" "curl" )
