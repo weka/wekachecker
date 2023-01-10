@@ -9,7 +9,7 @@ remove_needed=""
 
 missing_list=()
 
-if [ "$DIST" == "redhat" ]; then
+if [[ $ID_LIKE == *rhel* ]]; then
 	write_log "RECOMMENDED packages missing for WEKA runtime (RedHat based system):"
 
 	red_hat_pkg_list_general=( "epel-release" "sysstat" "strace" "ipmitool" "tcpdump" "telnet" "nmap" "net-tools" \
@@ -39,7 +39,7 @@ if [ "$DIST" == "redhat" ]; then
         fi
     fi
 
-else
+elif [[ $ID_LIKE == *debian* ]]; then
 	write_log "RECOMMENDED packages missing for WEKA runtime (Debian/Ubuntu based system):"
 
 	debian_pkg_list_general=( "net-tools" "wget" "sg3-utils" "gdisk" "ntpdate" "ipmitool" "sysstat" "strace" \

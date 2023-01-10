@@ -6,27 +6,6 @@ SCRIPT_TYPE="parallel"
 # Currently supported releases:
 ## https://docs.weka.io/support/prerequisites-and-compatibility
 
-source /etc/os-release
-
-# CentOS doesn't include subversion (e.g. 7.x) information in /etc/os-release,
-# so we set it from /etc/redhat-release
-# Format: CentOS Linux release 7.9.2009 (Core)
-if [ "$ID" = 'centos' ]; then
-	VERSION_ID=$(cat /etc/redhat-release)
-
-	# Remove everything before the number, leaving "7.9.2009 (Core)"
-	VERSION_ID=${VERSION_ID##*release }
-
-	# Remove everything from the date to the end, leaving "7.9"
-	VERSION_ID=${VERSION_ID%.*}
-
-# Ubuntu doesn't include subversion (e.g. 20.04.x) information in VERSION_ID in
-# /etc/os-release, so we set it from VERSION in /etc/os-release
-elif [ "$ID" = 'ubuntu' ]; then
-	# Remove everything after the number, leaving "20.04.3"
-	VERSION_ID=${VERSION%% *}
-fi
-
 distro_not_found=0
 version_not_found=0
 unsupported_distro=0

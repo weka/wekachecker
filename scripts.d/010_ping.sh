@@ -9,18 +9,18 @@ ret="1"
 
 which ping &> /dev/null
 if [ $? -eq 1 ]; then
-	if [ "$DIST" == "ubuntu" ]; then
+	if [[ $ID_LIKE == *debian* ]]; then
 		PACKAGE="iputils-ping"
-	else
+	elif [[ $ID_LIKE == *rhel* ]]; then
 		PACKAGE="iputils"
 	fi
 	echo "ping not found." 
 	if [ "$FIX" == "True" ]; then
 		echo "Fix requested. Installing ping"
-		if [ "$DIST" == "ubuntu" ]; then
+		if [[ $ID_LIKE == *debian* ]]; then
 			sudo apt-get update
 			sudo apt-get -y install iputils-ping
-		else
+		elif [[ $ID_LIKE == *rhel* ]]; then
 			sudo yum -y install iputils
 		fi
 	else
