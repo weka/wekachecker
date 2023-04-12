@@ -59,10 +59,10 @@ if [ "$unified_block_size" -ne 1 ]; then
 	block_size_table=$(for namespace in /dev/nvme*n*; do
 		printf "  %14s %6s\n" "$namespace" "$((2**"${namespace_current_data_size["$namespace"]}"))"
 	done)
-	write_log
-	write_log 'Block size mismatch among NVMe devices:'
-	write_log "$block_size_table"
-	write_log
+	echo
+	echo 'Block size mismatch among NVMe devices:'
+	echo "$block_size_table"
+	echo
 	rc=254
 fi
 
@@ -73,41 +73,41 @@ for namespace in /dev/nvme*n*; do
 	rp=${namespace_current_relative_performance["$namespace"]}
 
 	if [ "$ms" -ne 0 ]; then
-		write_log "$namespace: Metadata size ($ms) is greater than 0"
+		echo "$namespace: Metadata size ($ms) is greater than 0"
 		rc=1
 	fi
 
 	if [ "$lbads" -gt 12 ]; then
-		write_log "$namespace: Block size ($lbads) is larger than 4K"
+		echo "$namespace: Block size ($lbads) is larger than 4K"
 		rc=1
 	fi
 
 	if [ "$rp" -ne 0 ]; then
-		write_log "$namespace: Relative performance ($rp) is not set to 0 (Best)"
+		echo "$namespace: Relative performance ($rp) is not set to 0 (Best)"
 		rc=1
 	fi
 done
 
 if [ "$rc" -ne 0 ]; then
-	write_log
-	write_log 'To resolve the above issue(s), reformat the NVMe namespace(s) (assuming that'
-	write_log 'it is intended to be a WEKA drive) using an LBA format with:'
-	write_log
-	write_log '    - Metadata size of 0;'
-	write_log '    - Data size of 4K or lower, matching all namespaces if possible;'
-	write_log '    - Relative performance of 0 (Best).'
-	write_log
-	write_log 'Changing the NVMe namespace as necessary, see the output of the following'
-	write_log 'for the available LBA formats:'
-	write_log
-	write_log "    sudo nvme id-ns /dev/nvme0n1 -H | grep '^LBA Format'"
-	write_log
-	write_log 'And run the following command to reformat after selecting an LBA format:'
-	write_log
-	write_log '    sudo nvme format --lbaf=1 /dev/nvme0n1'
-	write_log
-	write_log 'Note that data will be lost when reformatting. It is strongly recommended'
-	write_log 'that the LBA format of all WEKA NVMe devices match if possible.'
+	echo
+	echo 'To resolve the above issue(s), reformat the NVMe namespace(s) (assuming that'
+	echo 'it is intended to be a WEKA drive) using an LBA format with:'
+	echo
+	echo '    - Metadata size of 0;'
+	echo '    - Data size of 4K or lower, matching all namespaces if possible;'
+	echo '    - Relative performance of 0 (Best).'
+	echo
+	echo 'Changing the NVMe namespace as necessary, see the output of the following'
+	echo 'for the available LBA formats:'
+	echo
+	echo "    sudo nvme id-ns /dev/nvme0n1 -H | grep '^LBA Format'"
+	echo
+	echo 'And run the following command to reformat after selecting an LBA format:'
+	echo
+	echo '    sudo nvme format --lbaf=1 /dev/nvme0n1'
+	echo
+	echo 'Note that data will be lost when reformatting. It is strongly recommended'
+	echo 'that the LBA format of all WEKA NVMe devices match if possible.'
 fi
 
 exit "$rc"

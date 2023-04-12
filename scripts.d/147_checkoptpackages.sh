@@ -10,7 +10,7 @@ remove_needed=""
 missing_list=()
 
 if [[ $ID_LIKE == *rhel* ]]; then
-	write_log "RECOMMENDED packages missing for WEKA runtime (RedHat based system):"
+	echo "RECOMMENDED packages missing for WEKA runtime (RedHat based system):"
 
 	red_hat_pkg_list_general=( "epel-release" "sysstat" "strace" "ipmitool" "tcpdump" "telnet" "nmap" "net-tools" \
         "dstat" "numactl" "numactl-devel" "python" "python3" "libaio" "libaio-devel" "perl" \
@@ -40,7 +40,7 @@ if [[ $ID_LIKE == *rhel* ]]; then
     fi
 
 elif [[ $ID_LIKE == *debian* ]]; then
-	write_log "RECOMMENDED packages missing for WEKA runtime (Debian/Ubuntu based system):"
+	echo "RECOMMENDED packages missing for WEKA runtime (Debian/Ubuntu based system):"
 
 	debian_pkg_list_general=( "net-tools" "wget" "sg3-utils" "gdisk" "ntpdate" "ipmitool" "sysstat" "strace" \
         "tcpdump" "telnet" "nmap" "hwloc" "numactl" "python3" "pciutils" "lsof" "wget" "bind9-utils" \

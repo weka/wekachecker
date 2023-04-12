@@ -9,7 +9,7 @@ OPT_WEKA="no"
 
 if [ ! -d "/opt/weka" ]
 then
-	write_log "/opt/weka does not exist"
+	echo "/opt/weka does not exist"
 	ret="1"
 	exit $ret
 fi
@@ -42,16 +42,16 @@ fi
 
 enough_space=$(awk "BEGIN { if ($local_free_space >= $space_needed) print \"y\" }")
 if [ "$enough_space" = 'y' ]; then
-	write_log "There is enough space to run Weka.IO on this node"
+	echo "There is enough space to run Weka.IO on this node"
 	ret="0"
 else
-	write_log "/opt/weka has only "$local_free_space"GiB free, but at least "$space_needed"GiB is recommended for $num_of_cores cores"
+	echo "/opt/weka has only "$local_free_space"GiB free, but at least "$space_needed"GiB is recommended for $num_of_cores cores"
 	ret="254"
 fi
 
 if [ "$OPT_WEKA" != "yes" ]; then
-	write_log "/opt/weka is not in a partition.  Please create a dedicated /opt/weka partition"
-	write_log "Note: You may NOT just symlink /opt/weka to another partition."
+	echo "/opt/weka is not in a partition.  Please create a dedicated /opt/weka partition"
+	echo "Note: You may NOT just symlink /opt/weka to another partition."
 	ret="254"
 fi
 

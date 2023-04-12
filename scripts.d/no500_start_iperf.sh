@@ -5,7 +5,7 @@ SCRIPT_TYPE="parallel"
 
 which iperf &> /dev/null
 if [ $? == 1 ]; then
-    write_log "ERROR: iperf not installed"
+    echo "ERROR: iperf not installed"
     exit "255"
 fi
 
@@ -13,6 +13,6 @@ fi
 sudo pkill iperf	# make sure it's not already running
 #(iperf -s &> /dev/null) &
 (iperf -s ) &
-write_log "iperf server started"
+echo "iperf server started"
 sleep 1
 exit 0
