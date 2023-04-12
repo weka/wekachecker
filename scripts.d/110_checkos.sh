@@ -63,23 +63,23 @@ case $ID in
 esac
 
 if [ "$distro_not_found" -eq 1 ]; then
-	write_log 'Distribution not found'
+	echo 'Distribution not found'
 	exit 1
 elif [ "$version_not_found" -eq 1 ]; then
-	write_log "$NAME detected but version not found"
+	echo "$NAME detected but version not found"
 	exit 1
 elif [ "$unsupported_distro" -eq 1 ]; then
-	write_log "$NAME is not a supported distribution"
+	echo "$NAME is not a supported distribution"
 	exit 1
 elif [ "$unsupported_version" -eq 1 ]; then
-	write_log "$NAME $VERSION_ID is not a supported version of $NAME"
+	echo "$NAME $VERSION_ID is not a supported version of $NAME"
 	exit 1
 else
 	if [ "$client_only" -eq 1 ]; then
-		write_log "$NAME $VERSION_ID is supported (for client only)"
+		echo "$NAME $VERSION_ID is supported (for client only)"
 		exit 254
 	else
-		write_log "$NAME $VERSION_ID is supported"
+		echo "$NAME $VERSION_ID is supported"
 		exit 0
 	fi
 fi

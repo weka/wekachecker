@@ -9,7 +9,7 @@ install_needed=""
 missing_list=()
 
 if [[ $ID_LIKE == *rhel* ]]; then
-	write_log "REQUIRED packages missing for weka installation (Red Hat based system)"
+	echo "REQUIRED packages missing for weka installation (Red Hat based system)"
 	red_hat_pkg_list_weka=( "elfutils-libelf-devel" \
                              "gcc" "glibc-headers" "glibc-devel" \
                              "make" "perl" "rpcbind" "xfsprogs" \
@@ -37,7 +37,7 @@ if [[ $ID_LIKE == *rhel* ]]; then
     fi
 
 elif [[ $ID_LIKE == *debian* ]]; then
-	write_log "REQUIRED packages missing for weka installation (Debian/Ubuntu based system)"
+	echo "REQUIRED packages missing for weka installation (Debian/Ubuntu based system)"
 	debian_pkg_list_weka=( "libelf-dev" "linux-headers-$(uname -r)" \
                             "gcc" "make" "perl" "python2-minimal" \
                             "rpcbind" "xfsprogs" )

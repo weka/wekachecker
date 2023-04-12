@@ -13,7 +13,7 @@ for master in $masters; do
 	for slave in $slaves; do
 		slave_mtu=$(cat /sys/class/net/"$slave"/mtu)
 		if [ "$slave_mtu" -ne "$master_mtu" ]; then
-			write_log "FAIL: $slave MTU ($slave_mtu) does not match master $master's MTU ($master_mtu)"
+			echo "FAIL: $slave MTU ($slave_mtu) does not match master $master's MTU ($master_mtu)"
 			rc=1
 		fi
 	done

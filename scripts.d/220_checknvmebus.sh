@@ -14,12 +14,12 @@ for bus_id in $nvme_buses; do
 done
 
 if [ "${#non_compliant_bus_ids[@]}" -eq 0 ]; then
-	write_log 'There are no NVMe devices on bus IDs at or above 10000.'
+	echo 'There are no NVMe devices on bus IDs at or above 10000.'
 	exit 0
 else
-	write_log "Non-compliant PCIe bus addresses: ${non_compliant_bus_ids[*]}"
-	write_log 'See `lspci` for further details. These are incompatible with DPDK.'
-	write_log 'You may need to disable Intel VMD or exclude these devices from'
-	write_log 'VMD in the BIOS, or exclude these devices from your WEKA cluster.'
+	echo "Non-compliant PCIe bus addresses: ${non_compliant_bus_ids[*]}"
+	echo 'See `lspci` for further details. These are incompatible with DPDK.'
+	echo 'You may need to disable Intel VMD or exclude these devices from'
+	echo 'VMD in the BIOS, or exclude these devices from your WEKA cluster.'
 	exit 254
 fi

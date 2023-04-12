@@ -19,25 +19,25 @@ if [ $? -eq 0 ]; then
 fi
 
 if [ $CHRONY -eq 1 ] && [ $NTP -eq 1 ]; then
-	write_log "Both Chrony and NTP are installed"
+	echo "Both Chrony and NTP are installed"
 elif [ $CHRONY -eq 1 ]; then
-	write_log "Chrony is installed"
+	echo "Chrony is installed"
 elif [ $NTP -eq 1 ]; then
-	write_log "NTP is installed"
+	echo "NTP is installed"
 else
-	write_log "Neither Chrony nor NTP are installed"
-	write_log "    PATH: $PATH"
+	echo "Neither Chrony nor NTP are installed"
+	echo "    PATH: $PATH"
 fi
 
 CHRONYGOOD=0
 if [ $CHRONY -eq 1 ]; then
 	chronyc waitsync 1 0.1 &> /dev/null
 	if [ $? -eq 0 ]; then
-		write_log "Chrony is working"
+		echo "Chrony is working"
 		CHRONYGOOD=1
 		exit 0
 	else
-		write_log "Chrony installed but not working"
+		echo "Chrony installed but not working"
 	fi
 fi
 
@@ -46,13 +46,13 @@ NTPGOOD=0
 if [ $NTP -eq 1 ]; then
 	ntpdate -q time.nist.gov &> /dev/null
 	if [ $? -eq 1 ]; then
-		write_log "NTP installed but not working?"
+		echo "NTP installed but not working?"
 	else
 		sec_ntp=`ntpdate -q time.nist.gov | tail -1 | awk {'print $10'} | awk -F. {'print $1'}`
 		if [ "$sec_ntp" -ne "0" ]; then
-			write_log "Time is unsynced for more than a second, please run: ntpdate -b time.nist.gov"
+			echo "Time is unsynced for more than a second, please run: ntpdate -b time.nist.gov"
 		else
-			write_log "Time is properly synced"
+			echo "Time is properly synced"
 			NTPGOOD=1
 		fi
 	fi
