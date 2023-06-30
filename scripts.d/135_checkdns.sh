@@ -10,7 +10,7 @@ if [ ! -z $current_dns_server ]; then
 	which nslookup &> /dev/null
 	if [ $? -eq 1 ]; then
 		echo "Could not find nslookup utility, please install yum -y install bind-utils or apt-get install dnsutils"
-		ret="1"
+		ret="254"
 	else
 		nslookup $current_dns_server &> /dev/null
 		if [ $? -eq 1 ]; then

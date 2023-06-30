@@ -10,13 +10,14 @@ distro_not_found=0
 version_not_found=0
 unsupported_distro=0
 unsupported_version=0
+warning=0
 client_only=0
 
 case $ID in
 	'centos')
 		case $VERSION_ID in
 			'7.'[2-9]) ;;
-			'8.'[0-5]) ;;
+			'8.'[0-7]) ;;
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
@@ -26,6 +27,7 @@ case $ID in
 		case $VERSION_ID in 
 			'7.'[2-9]) ;;
 			'8.'[0-6]) ;;
+			'9.'[0-1]) client_only=1 ;; # change to warning=1 when RHEL 9 is supported
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
@@ -33,7 +35,8 @@ case $ID in
 
 	'rocky')
 		case $VERSION_ID in 
-			'8.6') ;;
+			'8.'[0-7]) ;;
+			'9.'[0-1]) client_only=1 ;; # change to warning=1 when RHEL 9 is supported
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
@@ -53,6 +56,7 @@ case $ID in
 		case $VERSION_ID in
 			'18.04.'[0-6]) ;;
 			'20.04.'[0-3]) ;;
+			'22.04.'[0-3]) client_only=1 ;;
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
@@ -74,6 +78,9 @@ elif [ "$unsupported_distro" -eq 1 ]; then
 elif [ "$unsupported_version" -eq 1 ]; then
 	echo "$NAME $VERSION_ID is not a supported version of $NAME"
 	exit 1
+elif [ "$warning" -eq 1 ]; then
+	echo "$NAME $VERSION_ID version of $NAME is newly supported, please verify OS compatibility"
+	exit 254
 else
 	if [ "$client_only" -eq 1 ]; then
 		echo "$NAME $VERSION_ID is supported (for client only)"

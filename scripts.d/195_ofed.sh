@@ -7,7 +7,7 @@ SCRIPT_TYPE="parallel"
 which ofed_info &> /dev/null
 if [ $? != 0 ]; then
     echo "OFED not installed"
-    exit 1
+    exit 254
 fi
 
 # is it a supported ofed version?
@@ -15,7 +15,7 @@ OFEDVER=`ofed_info | sed -n '1s/^.*LINUX-//p' | sed 's/ .*//'`
 
 
 case "$OFEDVER" in 
-    5.1-2.5.8.0 | 5.1-2.6.2.0 | 5.6-1.0.3.3 | 5.6-2.0.9.0)
+    5.1-2.5.8.0 | 5.1-2.6.2.0 | 5.4-3.4.0.0 | 5.4-3.5.8.0 | 5.6-1.0.3.3 | 5.6-2.0.9.0 | 5.7-1.0.2.0 | 5.8-1.1.2.1 | 5.9-0.5.6.0 )
         #continue
         ;;
     *)
