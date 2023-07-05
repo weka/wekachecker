@@ -50,8 +50,8 @@ if [ $# -gt 0 ]; then
 	      PINGERRORS=$PINGERRORS+1
 		  echo "   *FAIL: Unable to ping $i"
 		  echo "        $QUICKPING"
-		  continue
-	  fi 
+		  exit "255"
+	  fi
       IPRESOLVED=`ping -c1 $i | head -1 | cut '-d ' -f3`
       DESTIPADDR=${IPRESOLVED:1:-1}
 	  # using sed below because the output of the 'ip' command isn't strictly columnar; data may be in different columns

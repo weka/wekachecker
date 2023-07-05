@@ -27,11 +27,11 @@ if [ $? -eq 1 ]; then
 		if [ $? -eq 1 ]; then
 			echo "Fix failed - clockdiff still not found"
 			echo "Please install $PACKAGE"
-			exit "254"
+			exit "1"
 		fi
 	else
 		echo "Please install $PACKAGE or use --fix option"
-		exit "254" #  WARN
+		exit "1" #  FAIL
 	fi
 fi
 
@@ -41,7 +41,7 @@ do
     RESULT=`clockdiff $i`
 	DIFF=`echo $RESULT | awk '{ print $2 + $3 }'`
 	if [ $DIFF -lt 0 ]; then let DIFF="(( 0 - $DIFF ))"; fi
-	if [ $DIFF -gt 10 ]; then # up to 10ms is allowed
+	if [ $DIFF -gt 50 ]; then # up to 10ms is allowed
 		echo "    FAIL: Host $i is not in timesync: time diff is $DIFF ms"
 		ret="1"
 	else

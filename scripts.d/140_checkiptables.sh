@@ -32,8 +32,8 @@ else
 		# On RedHat
 		systemctl status firewalld | grep inactive &> /dev/null
 		if [ $? -eq 1 ]; then
-			echo "Firewalld service is enabled: please run systemctl disable firewalld, service firewalld stop"
-			ret="1"
+			echo "Firewalld service is enabled: please verify firewall rules are not blocking Weka.IO traffic"
+			ret="254"
 		else
 			echo "Firewalld service is disabled."
 			ret="0"

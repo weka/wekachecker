@@ -12,15 +12,14 @@ missing_list=()
 if [[ $ID_LIKE == *rhel* ]]; then
 	echo "REQUIRED packages missing for OFED installation (Red Hat based system)"
 
-	red_hat_pkg_list_ofed=( "pciutils" "cairo" "gcc-gfortran" 
-                            "tcsh" "lsof" "tcl" "tk" )
+	red_hat_pkg_list_ofed=( "pciutils" "gcc-gfortran" "tcsh" "lsof" "tcl" "tk" )
 
 	if [ ! -d /etc/amazon ]; then	# Amazon does not use OFED
 		for i in ${red_hat_pkg_list_ofed[@]}; do
 			rpm -q $i &> /dev/null
 			if [ $? -eq 1 ]; then
                 missing_list+=($i)
-				ret="1" # FAIL
+				ret="254" # FAIL
                 install_needed="$install_needed $i"
 			fi
 		done
@@ -47,7 +46,7 @@ elif [[ $ID_LIKE == *debian* ]]; then
 		dpkg -l | awk {'print $2'} | grep -i $d &> /dev/null
 		if [ $? -eq 1 ]; then
             missing_list+=($d)
-			ret="1" # FAIL
+			ret="254" # FAIL
             install_needed="$install_needed $i"
 		fi
 	done

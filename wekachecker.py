@@ -151,7 +151,7 @@ def run_scripts(workers, scripts, args, preamble):
 # parse arguments
 progname = sys.argv[0]
 parser = argparse.ArgumentParser(description='Check if servers are ready to run Weka')
-parser.add_argument('servers', metavar='servername', type=str, nargs='+',
+parser.add_argument('servers', metavar='dataplane_ips', type=str, nargs='+',
                     help='Server DATAPLANE IPs to execute on')
 parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='store_true',
                     help="Execute cluster-wide scripts")

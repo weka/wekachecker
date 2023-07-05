@@ -4,7 +4,7 @@ DESCRIPTION="Check if kernel is supported..."
 SCRIPT_TYPE="parallel"
 
 # Spaces required around the value as we search for " x.x "
-weka_supported_kernels=$(echo ' '3.10 4.{4..19} 5.{3..4}' ')
+weka_supported_kernels=$(echo ' '3.10 4.{4..19} 5.{3..15}' ')
 declare -A ubuntu_ga_kernel=(
 	['18.04']='4.15'
 	['20.04']='5.4'
