@@ -157,7 +157,8 @@ parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='sto
                     help="Execute cluster-wide scripts")
 parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store_true',
                     help="Execute server-specific scripts")
-#parser.add_argument("-p", "--perfscripts", dest='perfscripts', action='store_true', help="Execute performance scripts")
+parser.add_argument("-w", "--workload", dest='workload', default="default",
+                    help="workload definition directory (a subdir of scripts.d)")
 
 # these next args are passed to the script and parsed in etc/preamble - this is more for syntax checking
 parser.add_argument("-v", "--verbose", dest='verbosity', action='store_true', help="enable verbose mode")
@@ -175,11 +176,13 @@ configure_logging(log, args.verbosity)
 # load our ssh configuration
 remote_servers = list()
 
-try:
-    wd = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
-except AttributeError:
-    ab = os.path.abspath(progname)
-    wd = os.path.dirname(ab)
+#try:
+#    wd = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
+#except AttributeError:
+#    ab = os.path.abspath(progname)
+#    wd = os.path.dirname(ab)
+ab = os.path.abspath(progname)
+wd = os.path.dirname(ab)
 
 with pushd(wd):  # change to this dir so we can find "./scripts.d"
     # make sure passwordless ssh works to all the servers because nothing will work if not set up
@@ -226,21 +229,19 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     # get the list of scripts in ./etc/scripts.d
     if not args.clusterscripts and not args.serverscripts:
         # unspecicified by user so execute all scripts
-        scripts = [f for f in glob.glob("./scripts.d/[0-9]*")]
+        scripts = [f for f in glob.glob(f"./scripts.d/{args.workload}/[0-9]*")]
     else:
         scripts = []
         if args.clusterscripts:
-            scripts += [f for f in glob.glob("./scripts.d/0*")]
+            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/0*")]
         if args.serverscripts:
-            scripts += [f for f in glob.glob("./scripts.d/[1-2]*")]
-        #if args.perfscripts:
-        #    scripts += [f for f in glob.glob("./scripts.d/5*")]
+            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/[1-2]*")]
 
     # sort them so they execute in the correct order
     scripts.sort()
 
     # get the preamble file - commands and settings for all scripts
-    preamblefile = open("./scripts.d/preamble")
+    preamblefile = open(f"scripts.d/default/preamble")
     if preamblefile.mode == "r":
         preamble = preamblefile.read()  # suck in the contents of the preamble file
     else:

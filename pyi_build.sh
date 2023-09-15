@@ -5,5 +5,6 @@ TOOL=`basename $PWD`
 MAIN=$TOOL.py
 TARGET=tarball/$TOOL
 
-pyinstaller --add-data scripts.d:scripts.d --onefile $MAIN
+#pyinstaller --add-data scripts.d:scripts.d --onefile $MAIN
+pyinstaller --onefile $MAIN
 
