@@ -159,6 +159,8 @@ parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store
                     help="Execute server-specific scripts")
 parser.add_argument("-w", "--workload", dest='workload', default="default",
                     help="workload definition directory (a subdir of scripts.d)")
+parser.add_argument("--clusterip", dest='clusterip', default=None,
+                    help="IP address of a cluster (for use with --workload client)")
 
 # these next args are passed to the script and parsed in etc/preamble - this is more for syntax checking
 parser.add_argument("-v", "--verbose", dest='verbosity', action='store_true', help="enable verbose mode")
@@ -191,7 +193,8 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     for host in args.servers:
         remote_servers.append(RemoteServer(host))
 
-    # print(f"opening ssh sessions to all servers")
+    # For CLIENT mode... check if the user gave us the dataplane IP addr by checking the routing tables to see if it
+    # can route to the --clusterip.   If they didn't specify the clusterip, just perform local tests.
 
     # open ssh sessions to the servers - errors are in workers[<servername>].exc
     # loop through all rather than parallel because 
@@ -241,7 +244,7 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     scripts.sort()
 
     # get the preamble file - commands and settings for all scripts
-    preamblefile = open(f"scripts.d/default/preamble")
+    preamblefile = open(f"scripts.d/{args.workload}/preamble")
     if preamblefile.mode == "r":
         preamble = preamblefile.read()  # suck in the contents of the preamble file
     else:
@@ -258,6 +261,13 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
 
     if args.fix_flag:
         arguments = arguments + "-f "
+
+    if args.clusterip is not None and args.workload == "client":
+        arguments = arguments + "--clusterip " + args.clusterip
+    else:
+        if args.clusterip is not None:
+            print("ERROR: --clusterip is only valid with --workload client")
+            sys.exit(1)
 
     for server in args.servers:
         arguments += server + ' '
