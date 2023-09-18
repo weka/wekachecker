@@ -6,7 +6,7 @@ SCRIPT_TYPE="single"
 
 ret="0"
 
-# Put your stuff here
+# Verify we have clockdiff
 which clockdiff &> /dev/null
 if [ $? -eq 1 ]; then
 	if [[ $ID_LIKE == *debian* ]]; then
@@ -36,18 +36,15 @@ if [ $? -eq 1 ]; then
 fi
 
 echo
-for i in $*
-do
-    RESULT=`clockdiff $i`
-	DIFF=`echo $RESULT | awk '{ print $2 + $3 }'`
-	if [ $DIFF -lt 0 ]; then let DIFF="(( 0 - $DIFF ))"; fi
-	if [ $DIFF -gt 50 ]; then # up to 10ms is allowed
-		echo "    FAIL: Host $i is not in timesync: time diff is $DIFF ms"
+HOSTNAME= $(hostname)
+RESULT=`clockdiff $CLUSTERIP`
+DIFF=`echo $RESULT | awk '{ print $2 + $3 }'`
+if [ $DIFF -lt 0 ]; then let DIFF="(( 0 - $DIFF ))"; fi
+if [ $DIFF -gt 50 ]; then # up to 10ms is allowed
+		echo "    FAIL: Host $HOSTNAME is not in timesync: time diff is $DIFF ms"
 		ret="1"
-	else
-		echo "        OK: Host $i timesync ok; diff is $DIFF"
-	fi
-done
-
+else
+		echo "        OK: Host $HOSTNAME timesync ok; diff is $DIFF"
+fi
 
 exit $ret

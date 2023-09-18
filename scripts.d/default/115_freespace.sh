@@ -5,6 +5,8 @@ SCRIPT_TYPE="parallel"
 
 # Checking if installation folder has enough free space for Weka.IO install - general requirement is 26Gb and additional 10Gb per CPU core
 
+# for clients.. this can be as many as 8 cores (usually).   Typical is more like 4 cores.
+
 OPT_WEKA="no"
 
 if [ ! -d "/opt/weka" ]
@@ -17,11 +19,11 @@ fi
 
 df -h /opt/weka | tail -1 | awk '{print $6}' | grep /opt &> /dev/null
 if [ $? -eq 1 ]; then
-        # No locally mounted /opt/dir to seperate partition, which means opt is on /
+        # No locally mounted /opt/dir to separate partition, which means opt is on /
 	# Total No-No!
 	OPT_WEKA="no"
 else
-        # There is locally mounted /opt/dir to seperate partition, which means weka should be in /opt
+        # There is locally mounted /opt/dir to separate partition, which means weka should be in /opt
 	OPT_WEKA="yes"
 fi
 

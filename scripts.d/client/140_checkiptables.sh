@@ -4,7 +4,7 @@ DESCRIPTION="Check Firewall rules..."
 SCRIPT_TYPE="parallel"
 
 if grep "Amazon Linux" /etc/os-release &> /dev/null; then
-        echo "Not checking frewall rules because it is N/A on AWS"
+        echo "Not checking firewall rules because it is N/A on AWS"
         ret="0"
         exit $ret
 fi
@@ -20,7 +20,7 @@ else
 		# On Debian
 		count_rules=`sudo iptables -L -v -n | wc -l`
 		if [ "$count_rules" -ne "8" ]; then
-			echo "Firewall has extra rules setup; Weka.IO may not function properly. Please see below ouput of iptables -L -v -n"
+			echo "Firewall has extra rules setup; Weka.IO may not function properly. Please see below output of iptables -L -v -n"
 			running_rule=`sudo iptables -L -v -n`
 			echo "$running_rule"
 			ret="1"
