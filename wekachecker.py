@@ -8,6 +8,7 @@ import os
 import sys
 import report
 import subprocess
+import re
 from contextlib import contextmanager
 from colorama import Fore
 from wekapyutils.wekassh import RemoteServer, parallel, pdsh
@@ -40,12 +41,10 @@ def announce(text):
 
 # finds a string variable in the script, such as DESCRIPTION="this is a description"
 def find_value(script, name):
-    desc_start = script.find(name)
-    if desc_start != -1:
-        desc_begin = script.find('"', desc_start) + 1
-        desc_end = script.find('"', desc_begin)
-        desc = script[desc_begin:desc_end]
-        return (desc)
+    search_re = re.compile(r'^ *' + re.escape(name) + r'="([^"]+)"', re.MULTILINE) # ignore comments, check it's bounded by Beginning-of-line or =. Could arguably use \b
+    matches = re.findall(search_re, script)
+    if(matches):
+        return (matches[0])
     else:
         return ("ERROR: Script lacks variable declaration for " + name)
 
