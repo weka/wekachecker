@@ -74,7 +74,7 @@ def run_scripts(workers, scripts, args, preamble):
         resultkey = f"{os.path.basename(scriptname)}:{description}"
         announce(description.ljust(60))
 
-        script_type = find_value(script, "SCRIPT_TYPE")  # should be "single", "parallel", or "sequential"
+        script_type = find_value(script, "SCRIPT_TYPE")  # should be "single", "parallel", "sequential", or "parallel-compare-backends"
 
         command = "( eval set -- " + args + "\n" + preamble + script + ")"
 
@@ -117,6 +117,29 @@ def run_scripts(workers, scripts, args, preamble):
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
                     max_retcode = server.output.status
+
+        elif script_type == "parallel-compare-backends":
+            # run on all backends in parallel, but expect all output to be identical - i.e. look for differences
+            max_retcode = 0
+
+            # create and start the threads
+            pdsh(workers, command)
+            expected_stdout = ""
+            for server in workers:
+                if not resultkey in results:
+                    results[resultkey] = {}
+                results[resultkey][str(server)] = [server.output.status,
+                                                    server.output.stdout]
+                expected_stdout = server.output.stdout # save any of them for comparison; doesn't matter which one differs
+                # note if any failed/warned.
+                if server.output.status > max_retcode:
+                    max_retcode = server.output.status
+
+            # if we get a difference, then bump up the return code to signal error
+            compare_result = all(results[resultkey][element][1] == expected_stdout for element in results[resultkey])
+            if (not compare_result):
+                max_retcode += 1
+
         else:
             announce("\nERROR: Script failure: SCRIPT_TYPE in script " + scriptname + " not set.\n")
             print("HARD FAIL - terminating tests.  Please resolve the issue and re-run.")
