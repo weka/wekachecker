@@ -9,8 +9,8 @@ WTA_REFERENCE=""
 RETURN_CODE=0
 
 
-LOWEST_WRITE_LATENCY=$( weka stats --category ssd --stat DRIVE_WRITE_LATENCY --param "disk:*" --interval 600 -s value --output value --no-header | head -n1 | sed "s/[^0-9.]//g")
-HIGHEST_WRITE_LATENCY=$(weka stats --category ssd --stat DRIVE_WRITE_LATENCY --param "disk:*" --interval 600 -s value --output value --no-header | tail -n1 | sed "s/[^0-9.]//g")
+LOWEST_WRITE_LATENCY=$( weka stats --category ssd --stat DRIVE_WRITE_LATENCY --param "disk:*" --interval 60 -s value --output value --no-header | head -n1 | sed "s/[^0-9.]//g")
+HIGHEST_WRITE_LATENCY=$(weka stats --category ssd --stat DRIVE_WRITE_LATENCY --param "disk:*" --interval 60 -s value --output value --no-header | tail -n1 | sed "s/[^0-9.]//g")
 
 ALLOWABLE_MAGNITUDE=10
 
