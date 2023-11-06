@@ -32,7 +32,7 @@ if [ ${WEKA_S3_RUNNING} -ge 1 ] ; then
             else
                 echo "to ${JIRA_REFERENCE}"                                                                                                   
             fi
-            
+            RETURN_CODE=1
         fi
     fi
 fi
