@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ue # Fail with an error code if there's any sub-command/variable error
+
 DESCRIPTION="Check that only one Weka version is installed"
 # script type is single, parallel, sequential, or parallel-compare-backends
 SCRIPT_TYPE="parallel"

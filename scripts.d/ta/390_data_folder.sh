@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ue # Fail with an error code if there's any sub-command/variable error
+
 DESCRIPTION="Check for existence of /data folder"
 SCRIPT_TYPE="parallel"
 JIRA_REFERENCE="WEKAPP-329531"

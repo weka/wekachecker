@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ue # Fail with an error code if there's any sub-command/variable error
+
 DESCRIPTION="Check Weka DPDK network devices have IP gateways"
 # script type is single, parallel, sequential, or parallel-compare-backends
 SCRIPT_TYPE="parallel"

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ue # Fail with an error code if there's any sub-command/variable error
+
 DESCRIPTION="Verify that size of traces FS is larger than ensure-free"
 # script type is single, parallel, sequential, or parallel-compare-backends
 SCRIPT_TYPE="parallel"
