@@ -50,6 +50,7 @@ for VERSION_TO_CHECK in "${WEKA_VERSION_TABLE[@]}" ; do
             echo "to ${JIRA_REFERENCE} (${DESCRIPTION})"
         fi
         echo "This does not necessarily prove a problem, and should be investigated"
+        echo
     fi
 done
 
