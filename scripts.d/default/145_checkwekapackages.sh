@@ -1,33 +1,30 @@
 #!/bin/bash
 
-DESCRIPTION="Check for Recommended Packages..."
+DESCRIPTION="Check for Weka Required Packages..."
 SCRIPT_TYPE="parallel"
 
 # Checking if OS has the required packages installed for proper Weka.IO runtime
 install_needed=""
-remove_needed=""
 
 missing_list=()
 
 if [[ $ID_LIKE == *rhel* ]]; then
-	echo "RECOMMENDED packages missing for WEKA runtime (RedHat based system):"
+	echo "REQUIRED packages missing for weka installation (Red Hat based system)"
+	red_hat_pkg_list_weka=( "elfutils-libelf-devel" \
+                             "gcc" "glibc-headers" "glibc-devel" \
+                             "make" "perl" "rpcbind" "xfsprogs" \
+                             "kernel-devel" )
 
-	red_hat_pkg_list_general=( "epel-release" "sysstat" "strace" "ipmitool" "tcpdump" "telnet" "nmap" "net-tools" \
-        "dstat" "numactl" "numactl-devel" "python" "python3" "libaio" "libaio-devel" "perl" \
-        "lshw" "hwloc" "pciutils" "lsof" "wget" "bind-utils" "nvme-cli" "nfs-utils" \
-        "screen" "tmux" "git" "sshpass" "python-pip" "python3-pip" "lldpd" "bmon" \
-        "nload" "pssh" "pdsh" "iperf" "fio" "htop" )
-
-	for i in ${red_hat_pkg_list_general[@]}; do
+	for i in ${red_hat_pkg_list_weka[@]}; do
 		rpm -q $i &> /dev/null
 		if [ $? -eq 1 ]; then
             missing_list+=($i)
-			ret="254"   # WARNING
+			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi
 	done
 
-    needed_actions="${install_needed} ${remove_needed}"
+    needed_actions="${install_needed}"
     if [[ "$FIX" == "True" && "${needed_actions}" != "" ]]; then
         echo "--fix specified, attempting to install/remove packages"
         if [ "${install_needed}" != "" ]; then
@@ -40,18 +37,16 @@ if [[ $ID_LIKE == *rhel* ]]; then
     fi
 
 elif [[ $ID_LIKE == *debian* ]]; then
-	echo "RECOMMENDED packages missing for WEKA runtime (Debian/Ubuntu based system):"
+	echo "REQUIRED packages missing for weka installation (Debian/Ubuntu based system)"
+	debian_pkg_list_weka=( "libelf-dev" "linux-headers-$(uname -r)" \
+                            "gcc" "make" "perl" "python2-minimal" \
+                            "rpcbind" "xfsprogs" )
 
-	debian_pkg_list_general=( "net-tools" "wget" "sg3-utils" "gdisk" "ntpdate" "ipmitool" "sysstat" "strace" \
-        "tcpdump" "telnet" "nmap" "hwloc" "numactl" "python3" "pciutils" "lsof" "wget" "bind9-utils" \
-        "nvme-cli" "nfs-common" "screen" "tmux" "git" "sshpass" "python-pip" "python3-pip" "lldpd" "bmon" "nload" \
-        "pssh" "pdsh" "iperf" "fio" "htop" )
-
-	for e in ${debian_pkg_list_general[@]}; do
-		dpkg -l | awk {'print $2'} | grep -i $e &> /dev/null
+	for i in ${debian_pkg_list_weka[@]}; do
+		dpkg -l | awk {'print $2'} | grep -i $i &> /dev/null
 		if [ $? -eq 1 ]; then
-			missing_list+=($e)
-			ret="254"   # WARNING
+            missing_list+=($i)
+			ret="1" # FAIL
             install_needed="$install_needed $i"
 		fi
 	done
@@ -68,8 +63,8 @@ elif [[ $ID_LIKE == *debian* ]]; then
             fi
         fi
     fi
-fi
 
+fi
 out=" : : : "
 for (( i=0; i<"${#missing_list[@]}"; i++ )); do
     out+="${missing_list[$i]}: : "

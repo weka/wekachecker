@@ -8,6 +8,7 @@ import os
 import sys
 import report
 import subprocess
+import re
 from contextlib import contextmanager
 from colorama import Fore
 from wekapyutils.wekassh import RemoteServer, parallel, pdsh
@@ -40,12 +41,10 @@ def announce(text):
 
 # finds a string variable in the script, such as DESCRIPTION="this is a description"
 def find_value(script, name):
-    desc_start = script.find(name)
-    if desc_start != -1:
-        desc_begin = script.find('"', desc_start) + 1
-        desc_end = script.find('"', desc_begin)
-        desc = script[desc_begin:desc_end]
-        return (desc)
+    search_re = re.compile(r'^ *' + re.escape(name) + r'="([^"]+)"', re.MULTILINE) # ignore comments, check it's bounded by Beginning-of-line or =. Could arguably use \b
+    matches = re.findall(search_re, script)
+    if(matches):
+        return (matches[0])
     else:
         return ("ERROR: Script lacks variable declaration for " + name)
 
@@ -75,7 +74,7 @@ def run_scripts(workers, scripts, args, preamble):
         resultkey = f"{os.path.basename(scriptname)}:{description}"
         announce(description.ljust(60))
 
-        script_type = find_value(script, "SCRIPT_TYPE")  # should be "single", "parallel", or "sequential"
+        script_type = find_value(script, "SCRIPT_TYPE")  # should be "single", "parallel", "sequential", or "parallel-compare-backends"
 
         command = "( eval set -- " + args + "\n" + preamble + script + ")"
 
@@ -118,6 +117,29 @@ def run_scripts(workers, scripts, args, preamble):
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
                     max_retcode = server.output.status
+
+        elif script_type == "parallel-compare-backends":
+            # run on all backends in parallel, but expect all output to be identical - i.e. look for differences
+            max_retcode = 0
+
+            # create and start the threads
+            pdsh(workers, command)
+            expected_stdout = ""
+            for server in workers:
+                if not resultkey in results:
+                    results[resultkey] = {}
+                results[resultkey][str(server)] = [server.output.status,
+                                                    server.output.stdout]
+                expected_stdout = server.output.stdout # save any of them for comparison; doesn't matter which one differs
+                # note if any failed/warned.
+                if server.output.status > max_retcode:
+                    max_retcode = server.output.status
+
+            # if we get a difference, then bump up the return code to signal error
+            compare_result = all(results[resultkey][element][1] == expected_stdout for element in results[resultkey])
+            if (not compare_result):
+                max_retcode += 1
+
         else:
             announce("\nERROR: Script failure: SCRIPT_TYPE in script " + scriptname + " not set.\n")
             print("HARD FAIL - terminating tests.  Please resolve the issue and re-run.")
@@ -157,7 +179,10 @@ parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='sto
                     help="Execute cluster-wide scripts")
 parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store_true',
                     help="Execute server-specific scripts")
-#parser.add_argument("-p", "--perfscripts", dest='perfscripts', action='store_true', help="Execute performance scripts")
+parser.add_argument("-w", "--workload", dest='workload', default="default",
+                    help="workload definition directory (a subdir of scripts.d)")
+parser.add_argument("--clusterip", dest='clusterip', default=None,
+                    help="IP address of a cluster (for use with --workload client)")
 
 # these next args are passed to the script and parsed in etc/preamble - this is more for syntax checking
 parser.add_argument("-v", "--verbose", dest='verbosity', action='store_true', help="enable verbose mode")
@@ -175,11 +200,13 @@ configure_logging(log, args.verbosity)
 # load our ssh configuration
 remote_servers = list()
 
-try:
-    wd = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
-except AttributeError:
-    ab = os.path.abspath(progname)
-    wd = os.path.dirname(ab)
+#try:
+#    wd = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
+#except AttributeError:
+#    ab = os.path.abspath(progname)
+#    wd = os.path.dirname(ab)
+ab = os.path.abspath(progname)
+wd = os.path.dirname(ab)
 
 with pushd(wd):  # change to this dir so we can find "./scripts.d"
     # make sure passwordless ssh works to all the servers because nothing will work if not set up
@@ -188,7 +215,8 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     for host in args.servers:
         remote_servers.append(RemoteServer(host))
 
-    # print(f"opening ssh sessions to all servers")
+    # For CLIENT mode... check if the user gave us the dataplane IP addr by checking the routing tables to see if it
+    # can route to the --clusterip.   If they didn't specify the clusterip, just perform local tests.
 
     # open ssh sessions to the servers - errors are in workers[<servername>].exc
     # loop through all rather than parallel because 
@@ -226,21 +254,19 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     # get the list of scripts in ./etc/scripts.d
     if not args.clusterscripts and not args.serverscripts:
         # unspecicified by user so execute all scripts
-        scripts = [f for f in glob.glob("./scripts.d/[0-9]*")]
+        scripts = [f for f in glob.glob(f"./scripts.d/{args.workload}/[0-9]*")]
     else:
         scripts = []
         if args.clusterscripts:
-            scripts += [f for f in glob.glob("./scripts.d/0*")]
+            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/0*")]
         if args.serverscripts:
-            scripts += [f for f in glob.glob("./scripts.d/[1-2]*")]
-        #if args.perfscripts:
-        #    scripts += [f for f in glob.glob("./scripts.d/5*")]
+            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/[1-2]*")]
 
     # sort them so they execute in the correct order
     scripts.sort()
 
     # get the preamble file - commands and settings for all scripts
-    preamblefile = open("./scripts.d/preamble")
+    preamblefile = open(f"scripts.d/{args.workload}/preamble")
     if preamblefile.mode == "r":
         preamble = preamblefile.read()  # suck in the contents of the preamble file
     else:
@@ -257,6 +283,13 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
 
     if args.fix_flag:
         arguments = arguments + "-f "
+
+    if args.clusterip is not None and args.workload == "client":
+        arguments = arguments + "--clusterip " + args.clusterip
+    else:
+        if args.clusterip is not None:
+            print("ERROR: --clusterip is only valid with --workload client")
+            sys.exit(1)
 
     for server in args.servers:
         arguments += server + ' '
