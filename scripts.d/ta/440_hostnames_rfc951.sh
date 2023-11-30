@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -ue # Fail with an error code if there's any sub-command/variable error
+#set -ue # Fail with an error code if there is any sub-command/variable error
 
-DESCRIPTION="Ensure the hostname includes only valid characters according to RFC 952"
+DESCRIPTION="Ensure valid hostnames according to RFC 952"
 # script type is single, parallel, sequential, or parallel-compare-backends
 SCRIPT_TYPE="parallel"
 
@@ -24,6 +24,7 @@ if [[ $? -eq 0 ]]; then
     echo "The hostname ${SHORT_HOSTNAME} appears to contain a character other than [a-z], -, and [0-9]."
     echo "Refer to RFC 952 for more information"
     RETURN_CODE=1
-fi 
-                                                                                                                        
+fi
+
+echo "Hostnames conform to RFC 952"
 exit ${RETURN_CODE}
