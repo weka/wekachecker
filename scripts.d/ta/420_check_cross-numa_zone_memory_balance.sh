@@ -7,6 +7,7 @@ DESCRIPTION="Check that NUMA zones have similar amounts of memory"
 SCRIPT_TYPE="parallel"
 JIRA_REFERENCE=""
 WTA_REFERENCE=""
+KB_REFERENCE=""
 
 RETURN_CODE=0
 

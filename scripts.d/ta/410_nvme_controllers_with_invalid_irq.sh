@@ -7,6 +7,7 @@ DESCRIPTION="Check that all NVME devices have valid IRQ routing"
 SCRIPT_TYPE="parallel"
 JIRA_REFERENCE=""
 WTA_REFERENCE=""
+KB_REFERENCE=""
 
 RETURN_CODE=0
 
