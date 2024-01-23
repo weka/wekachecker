@@ -9,11 +9,11 @@ WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
 
-
-
 SOURCE_BASED_ROUTING_RECOMMENDED="0"
 NUMBER_OF_ROUTING_TABLES_SEEN="0"
 NUMBER_OF_ROUTING_TABLES_VERIFIED="0"
+NUMBER_OF_ARP_ANNOUNCE_VERIFIED="0"
+NUMBER_OF_ARP_FILTER_VERIFIED="0"
 
 # Look for multiple routes to the same destination via more than one device - this indicates that source-based routing might *possibly* be required because two devices could be on the same subnet
 while read -r ROUTING_COUNT ROUTING_DESTINATION ; do
@@ -37,6 +37,16 @@ while read -r ROUTING_COUNT ROUTING_DESTINATION ; do
                     while read -r INDIVIDUAL_ROUTE_DESTINATION INDIVIDUAL_ROUTE_DEVICE ; do
                         if [ "${INDIVIDUAL_ROUTE_DESTINATION}" = "${MAIN_TABLE_ROUTING_DESTINATION}" ]  && [ "${INDIVIDUAL_ROUTE_DEVICE}" = "${MAIN_TABLE_ROUTING_DEVICE}" ] ; then
                             let NUMBER_OF_ROUTING_TABLES_VERIFIED="${NUMBER_OF_ROUTING_TABLES_VERIFIED}+1"
+
+                            #Check that arp_announce=2 and arp_filter=1 for this interface, as per docs
+                            ARP_ANNOUNCE=$(sysctl -n net.ipv4.conf.${INDIVIDUAL_ROUTE_DEVICE}.arp_announce)
+                            ARP_FILTER=$(  sysctl -n net.ipv4.conf.${INDIVIDUAL_ROUTE_DEVICE}.arp_filter)
+                            if [[ ${ARP_ANNOUNCE} -eq "2" ]] ; then
+                                let NUMBER_OF_ARP_ANNOUNCE_VERIFIED="${NUMBER_OF_ARP_ANNOUNCE_VERIFIED}+1"
+                            fi
+                            if [[ ${ARP_FILTER} -eq "1" ]] ; then
+                                let NUMBER_OF_ARP_FILTER_VERIFIED="${NUMBER_OF_ARP_FILTER_VERIFIED}+1"
+                            fi
                         fi
                     done < <(ip -4 --json route list table ${ROUTING_TABLE} | jq -cr ".[]|[(.dst, .dev)] | @tsv")
                 done
@@ -49,11 +59,24 @@ done < <(ip -4 --json route | jq -cr '.[]|select(.dst!="default")|.dst' | sort |
 if [[ ${SOURCE_BASED_ROUTING_RECOMMENDED} -ge "1" ]] ; then
     echo "Multiple routes to a single destination exist - it is possible source-based routing should be configured"
 
+    # Now check we actually do some SBR
+    if [[ ${NUMBER_OF_ROUTING_TABLES_SEEN} -eq "0" ]] ; then
+        echo "Warning: Although source-based routing is expected, there are no device-specific routing tables configured"
+        RETURN_CODE="254"
+    fi
+    # and for each table...
     if [[ ${NUMBER_OF_ROUTING_TABLES_VERIFIED} -ne ${NUMBER_OF_ROUTING_TABLES_SEEN} ]] ; then
-        echo "Not every device-specific routing table has a route to the relevant destination via the specific interface. The output of \$(ip rule) and \$(ip route) should be reviewed"
+        echo "Warning: Not every device-specific routing table has a route to the relevant destination via the specific interface. The output of \$(ip rule) and \$(ip route) should be reviewed"
+        RETURN_CODE="254"
+    fi
+    if [[ ${NUMBER_OF_ROUTING_TABLES_SEEN} -ne ${NUMBER_OF_ARP_ANNOUNCE_VERIFIED} ]] ; then
+        echo "Warning: Not every interface appears to have arp_announce=2 set. This could lead to communication problems"
+        RETURN_CODE="254"
+    fi
+    if [[ ${NUMBER_OF_ROUTING_TABLES_SEEN} -ne ${NUMBER_OF_ARP_FILTER_VERIFIED} ]] ; then
+        echo "Warning: Not every interface appears to have arp_filter=1 set. This could lead to communication problems"
+        RETURN_CODE="254"
     fi
 fi
-
-
 
 exit ${RETURN_CODE}
