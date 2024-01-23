@@ -2,7 +2,7 @@
 
 set -ue # Fail with an error code if there's any sub-command/variable error
 
-DESCRIPTION="Examine the total amount of SSD space allocated vs theoretical maximum"
+DESCRIPTION="Examine the amount of SSD space used vs maximum"
 SCRIPT_TYPE="single"
 JIRA_REFERENCE=""
 WTA_REFERENCE=""
