@@ -15,7 +15,7 @@ NUMBER_OF_NUMA_DOMAINS=$(ls -d /sys/devices/system/node/node* |wc -l)
 
 if [[ ${NUMBER_OF_NUMA_DOMAINS} -gt ${MAXIMUM_NUMA_DOMAINS} ]]; then
     echo "Found ${NUMBER_OF_NUMA_DOMAINS} NUMA domains, which is greater than the current maximum of ${MAXIMUM_NUMA_DOMAINS}"
-    RETURN_CODE=255
+    RETURN_CODE=254
 fi
 
 exit ${RETURN_CODE}
