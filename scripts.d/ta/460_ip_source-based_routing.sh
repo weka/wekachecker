@@ -2,7 +2,7 @@
 
 #set -ue # Fail with an error code if there's any sub-command/variable error
 
-DESCRIPTION="Verify if source-based IP routing is required (and set-up)"
+DESCRIPTION="Verify if source-based IP routing is required (and set up)"
 SCRIPT_TYPE="parallel"
 JIRA_REFERENCE="WEKAPP-360289"
 WTA_REFERENCE=""
