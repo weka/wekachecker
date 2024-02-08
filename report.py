@@ -9,9 +9,9 @@ def zfillIP4(host):   # returns zero filled IP4 if host is valid IP4.  otherwise
         return ".".join(result), True
     else:
         return host, False
-    
+
 def process_json(infile, outfile, print_stdout=True):
-    returnCodes = {0: "PASS", 1: "*FAIL", 254: "WARN", 255: "*HARDFAIL"}
+    returnCodes = {0: "PASS", 1: "*FAIL", 127: "CMD TO RUN WAS NOT IN PATH", 254: "WARN", 255: "*HARDFAIL"}
     indent = ' ' * 6
     with open( infile ) as fp:
         results = json.load( fp )
@@ -30,8 +30,12 @@ def process_json(infile, outfile, print_stdout=True):
                         first = False
                         if print_stdout:
                             print(header)
-                        of.write(header) 
+                        of.write(header)
                     msg = [f"{indent}{l}\n" for l in msg.splitlines()]
+                    if msg and msg[0]:
+                        result = f"{indent}{msg[0][len(indent)-1:]}"
+                    else:
+                        msg = " EMPTY RESPONSE"
                     firstmsg = msg[0][len(indent)-1:]
                     rest = msg[1:]
                     m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
@@ -42,9 +46,9 @@ def process_json(infile, outfile, print_stdout=True):
 def main():
     # parse arguments
     parser = argparse.ArgumentParser(description='Process wekachecker json output into text file')
-    parser.add_argument('json_input_file', nargs='?', default='test_results.json', type=str, 
+    parser.add_argument('json_input_file', nargs='?', default='test_results.json', type=str,
         help='json file that was created by wekachecker (default: "test_results.json")')
-    parser.add_argument('-o', dest='outfile', default='test_results.txt', type=str, 
+    parser.add_argument('-o', dest='outfile', default='test_results.txt', type=str,
         help='output file name (default: "test_results.txt")')
 
     args = parser.parse_args()
