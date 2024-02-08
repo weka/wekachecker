@@ -23,4 +23,7 @@ if [[ ${HIGHER_THAN_EXPECTED} == "YES" ]]; then
     echo "Review ${JIRA_REFERENCE} for details"
 fi
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "The ratio of NVMe read requests vs DRIVE node read operations is within expected limits over the last ${TIME_TO_EXAMINE}"
+fi
 exit ${RETURN_CODE}

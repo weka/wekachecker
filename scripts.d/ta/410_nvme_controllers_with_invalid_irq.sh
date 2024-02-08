@@ -29,4 +29,7 @@ for PCI_DEVICE_ID in $(sudo lspci -mm | grep 'Non-Volatile memory controller' | 
     fi
 done
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "All NVMe devices have valid IRQ routing"
+fi
 exit ${RETURN_CODE}
