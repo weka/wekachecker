@@ -24,4 +24,7 @@ if [[ $((${CURRENT_TIME}-${MOST_RECENT_PROCESS_STARTTIME})) -lt 3600 ]]; then
     echo "but could be indicative of problems (e.g. network flapping"
 fi
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "No weka buckets or processes have been restarted within the last hour"
+fi
 exit ${RETURN_CODE}
