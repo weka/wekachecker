@@ -11,7 +11,7 @@ def zfillIP4(host):   # returns zero filled IP4 if host is valid IP4.  otherwise
         return host, False
     
 def process_json(infile, outfile, print_stdout=True):
-    returnCodes = {0: "PASS", 1: "*FAIL", 254: "WARN", 255: "*HARDFAIL"}
+    returnCodes = {0: "PASS", 1: "*FAIL", 127: "CMD TO RUN WAS NOT IN PATH", 254: "WARN", 255: "*HARDFAIL"}
     indent = ' ' * 6
     with open( infile ) as fp:
         results = json.load( fp )
@@ -32,6 +32,9 @@ def process_json(infile, outfile, print_stdout=True):
                             print(header)
                         of.write(header) 
                     msg = [f"{indent}{l}\n" for l in msg.splitlines()]
+                    if not (msg and msg[0]):
+                        msg = " EMPTY RESPONSE"
+                        result = f"{indent}{msg[0][len(indent)-1:]}"
                     firstmsg = msg[0][len(indent)-1:]
                     rest = msg[1:]
                     m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
