@@ -33,7 +33,7 @@ def process_json(infile, outfile, print_stdout=True):
                         of.write(header)
                     msg = [f"{indent}{l}\n" for l in msg.splitlines()]
                     if msg and msg[0]:
-                        result = f"{indent}{msg[0][len(indent)-1:]}"
+                        pass
                     else:
                         msg = " EMPTY RESPONSE"
                     firstmsg = msg[0][len(indent)-1:]
