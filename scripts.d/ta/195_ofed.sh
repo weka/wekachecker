@@ -68,6 +68,6 @@ fi
 #fi
 
 echo "Valid OFED configuration observed"
-return $ret
+exit $ret
 
 
