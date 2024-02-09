@@ -32,10 +32,9 @@ def process_json(infile, outfile, print_stdout=True):
                             print(header)
                         of.write(header)
                     msg = [f"{indent}{l}\n" for l in msg.splitlines()]
-                    if msg and msg[0]:
-                        pass
-                    else:
+                    if not (msg and msg[0]):
                         msg = " EMPTY RESPONSE"
+                        result = f"{indent}{msg[0][len(indent)-1:]}"
                     firstmsg = msg[0][len(indent)-1:]
                     rest = msg[1:]
                     m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
