@@ -77,4 +77,19 @@ done
 printf "$out\n" | column -t -s ":"
 printf "\n"
 
+# Check if Python 3.7 or higher is installed. Python 3.7 is required for resource generator script.
+if command -v python3 &>/dev/null; then
+    python_version=$(python3 -V | awk '{print $2}')
+    python_required=3.7
+    if [ $python_required == $(echo -e "$python_version\n$python_required" | sort -V | head -n1) ]; then
+        echo "Python 3 is installed and version is $python_version, which is 3.7 or higher."
+    else
+        echo "Python 3 is installed but the version ($python_version) is lower than 3.7."
+        ret="1" # FAIL
+    fi
+else
+    echo "Python 3.7 or higher is not installed."
+    ret="1" # FAIL
+fi
+
 exit $ret
