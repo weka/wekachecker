@@ -15,9 +15,11 @@ for WEKA_CONTAINER in $(sudo weka local ps --output name --no-header); do
         continue
     fi
     # Look for network devices with no gateway
-    NUMBER_OF_DEVICES_WITH_NO_GATEWAY=$(sudo weka local resources --container ${WEKA_CONTAINER} --json | jq -cr '[.net_devices[]|select(.gateway=="")|.name] | length' )
+    NUMBER_OF_DEVICES_WITH_NO_GATEWAY=$(sudo weka local resources --container ${WEKA_CONTAINER} --json | python3 -c 'import sys, json; data = json.load(sys.stdin); print(len([device for device in data["net_devices"] if device["gateway"] == ""]))')
+
+
     if [[ ${NUMBER_OF_DEVICES_WITH_NO_GATEWAY} -ne 0 ]] ; then
-        DEVICES_WITH_NO_GATEWAY=$(sudo weka local resources --container ${WEKA_CONTAINER} --json | jq -cr '[ .net_devices[]|select(.gateway=="")|.name ]')
+        DEVICES_WITH_NO_GATEWAY=$(sudo weka local resources --container ${WEKA_CONTAINER} --json | python3 -c 'import sys, json; data = json.load(sys.stdin); print("\n".join([device["name"] for device in data["net_devices"] if device["gateway"] == ""]))')
         echo "The container ${WEKA_CONTAINER} has the following network devices defined without an IP"
         echo "gateway - this might not be a mistake but means Weka POSIX traffic will not"
         echo "leave this subnet"

@@ -10,7 +10,7 @@ RETURN_CODE=0
 
 WEKA_TRACES_DIR="/opt/weka/traces"
 
-WEKA_ENSURE_FREE=$(weka debug traces status --json | jq .servers_ensure_free.value)   # bytes
+WEKA_ENSURE_FREE=$(weka debug traces status --json | python3 -c 'import sys, json; data = json.load(sys.stdin); print(data["servers_ensure_free"]["value"])')   # bytes
 TRACES_FS_SIZE_KB=$(df -BK ${WEKA_TRACES_DIR} --output=size | tail -n -1 | sed s/K$//) # kibibytes
 TRACES_FS_SIZE=$((${TRACES_FS_SIZE_KB}*1024)) # kibibytes
 

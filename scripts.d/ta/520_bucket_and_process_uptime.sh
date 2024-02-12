@@ -9,8 +9,8 @@ WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
 
-MOST_RECENT_BUCKET_STARTTIME=$( date +%s --date=$(weka cluster bucket  --json -s uptime | jq -cr '.|last|.up_since'))
-MOST_RECENT_PROCESS_STARTTIME=$(date +%s --date=$(weka cluster process --json -s uptime | jq -cr '.|last|.up_since'))
+MOST_RECENT_BUCKET_STARTTIME=$( date +%s --date=$(weka cluster bucket  --json -s -uptime | python3 -c 'import sys, json; data = json.load(sys.stdin) ; print(data[0]["up_since"])'))
+MOST_RECENT_PROCESS_STARTTIME=$(date +%s --date=$(weka cluster process --json -s -uptime | python3 -c 'import sys, json; data = json.load(sys.stdin) ; print(data[0]["up_since"])'))
 CURRENT_TIME=$(                 date +%s)
 
 if [[ $((${CURRENT_TIME}-${MOST_RECENT_BUCKET_STARTTIME})) -lt 3600 ]]; then

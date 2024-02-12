@@ -9,7 +9,8 @@ WTA_REFERENCE=""
 KB_REFERENCE="SFDC 12492"
 RETURN_CODE=0
 
-NOPREFIXROUTE_COUNT=$(ip --json addr | jq '[.[].addr_info[]|select((.family=="inet")and(.noprefixroute))]|length')
+# look for addr_info["family"] == "inet" && addr_info["noprefixroute"]
+NOPREFIXROUTE_COUNT=$(ip --json addr | python3 -c 'import sys, json; data = json.load(sys.stdin) ; print(len([addr for entry in data for addr in entry["addr_info"] if addr.get("family") == "inet" and addr.get("noprefixroute")]))')
 
 if [[ "${NOPREFIXROUTE_COUNT}" != "0" ]]; then
     RETURN_CODE="254"
