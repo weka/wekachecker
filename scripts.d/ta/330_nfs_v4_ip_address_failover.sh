@@ -11,8 +11,8 @@ KB_REFERENCE="KB 1184"
 
 RETURN_CODE=0
 
-WEKA_NFS_V4_SUPPORT_IN_USE=$(weka nfs permission --json  | jq ".[].supported_versions" | grep V4 | wc -l)
-WEKA_NFS_INTERFACE_GROUP_WITH_FLOATING_IPS_COUNT=$(weka nfs interface-group --json | jq '.[].ips | length' | grep -v "^0$" | wc -l)
+WEKA_NFS_V4_SUPPORT_IN_USE=$(weka nfs permission --json  | python3 -c 'import sys, json; data = json.load(sys.stdin); print(len([permission for permission in data if "V4" in permission.get("supported_versions", [])]))')
+WEKA_NFS_INTERFACE_GROUP_WITH_FLOATING_IPS_COUNT=$(weka nfs interface-group --json | python3 -c 'import sys, json; data = json.load(sys.stdin); print(sum([len(ig["ips"]) for ig in data]))')
 
 if [[ ( ${WEKA_NFS_V4_SUPPORT_IN_USE} -ne "0" ) && \
       ( ${WEKA_NFS_INTERFACE_GROUP_WITH_FLOATING_IPS_COUNT} -ne "0" ) ]] ; then

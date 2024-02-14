@@ -9,7 +9,7 @@ WTA_REFERENCE=""
 KB_REFERENCE="SFDC 12492"
 RETURN_CODE=0
 
-NUMBER_OF_ROUTES_WITH_METRICS=$(ip --json route | jq "[.[]|select(.metric!=null)]|length")
+NUMBER_OF_ROUTES_WITH_METRICS=$(ip -4 --json route | python3 -c 'import sys, json; data = json.load(sys.stdin) ; print(len([r for r in data if r.get("metric") and r["metric"]]))')
 
 if [[ ${NUMBER_OF_ROUTES_WITH_METRICS} -gt "0" ]]; then
     RETURN_CODE="254"
