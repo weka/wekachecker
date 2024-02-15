@@ -40,8 +40,8 @@ def announce(text):
 
 # finds a string variable in the script, such as DESCRIPTION="this is a description"
 def find_value(script, name):
-    search_re = re.compile(r'^ *' + re.escape(name) + r'="([^"]+)"',
-                           re.MULTILINE)  # ignore comments, check it's bounded by Beginning-of-line or =. Could arguably use \b
+    # ignore comments, check it's bounded by Beginning-of-line or =. Could arguably use \b
+    search_re = re.compile(r'^ *' + re.escape(name) + r'="([^"]+)"', re.MULTILINE)
     matches = re.findall(search_re, script)
     if (matches):
         return (matches[0])
@@ -74,8 +74,8 @@ def run_scripts(workers, scripts, args, preamble):
         resultkey = f"{os.path.basename(scriptname)}:{description}"
         announce(description.ljust(60))
 
-        script_type = find_value(script,
-                                 "SCRIPT_TYPE")  # should be "single", "parallel", "sequential", or "parallel-compare-backends"
+        # should be "single", "parallel", "sequential", or "parallel-compare-backends"
+        script_type = find_value(script, "SCRIPT_TYPE")
 
         command = "( eval set -- " + args + "\n" + preamble + script + ")"
 
@@ -131,7 +131,8 @@ def run_scripts(workers, scripts, args, preamble):
                     results[resultkey] = {}
                 results[resultkey][str(server)] = [server.output.status,
                                                    server.output.stdout]
-                expected_stdout = server.output.stdout  # save any of them for comparison; doesn't matter which one differs
+                # save any of them for comparison; doesn't matter which one differs
+                expected_stdout = server.output.stdout
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
                     max_retcode = server.output.status
