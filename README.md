@@ -27,6 +27,7 @@ Specifically, the scripts can return:
 |   Return Code |  Meaning |
 |---------------|----------|
 |           0   | PASS     |
+|         127   | PATH ERR |
 |         255   | HARDFAIL |
 |         254   | WARN     |
 | anything else | FAIL     |
