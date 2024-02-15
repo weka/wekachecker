@@ -5,17 +5,16 @@ import glob
 import json
 import logging
 import os
-import sys
-import report
-import subprocess
 import re
+import subprocess
+import sys
 from contextlib import contextmanager
-from colorama import Fore
-from wekapyutils.wekassh import RemoteServer, parallel, pdsh
-from wekapyutils.wekalogging import configure_logging, register_module, DEFAULT
 
-#from wekalogging import configure_logging
-#from wekassh import RemoteServer, parallel, pdsh
+from colorama import Fore
+from wekapyutils.wekalogging import configure_logging, register_module, DEFAULT
+from wekapyutils.wekassh import RemoteServer, pdsh
+
+import report
 
 # get root logger
 log = logging.getLogger()
@@ -41,9 +40,10 @@ def announce(text):
 
 # finds a string variable in the script, such as DESCRIPTION="this is a description"
 def find_value(script, name):
-    search_re = re.compile(r'^ *' + re.escape(name) + r'="([^"]+)"', re.MULTILINE) # ignore comments, check it's bounded by Beginning-of-line or =. Could arguably use \b
+    search_re = re.compile(r'^ *' + re.escape(name) + r'="([^"]+)"',
+                           re.MULTILINE)  # ignore comments, check it's bounded by Beginning-of-line or =. Could arguably use \b
     matches = re.findall(search_re, script)
-    if(matches):
+    if (matches):
         return (matches[0])
     else:
         return ("ERROR: Script lacks variable declaration for " + name)
@@ -74,7 +74,8 @@ def run_scripts(workers, scripts, args, preamble):
         resultkey = f"{os.path.basename(scriptname)}:{description}"
         announce(description.ljust(60))
 
-        script_type = find_value(script, "SCRIPT_TYPE")  # should be "single", "parallel", "sequential", or "parallel-compare-backends"
+        script_type = find_value(script,
+                                 "SCRIPT_TYPE")  # should be "single", "parallel", "sequential", or "parallel-compare-backends"
 
         command = "( eval set -- " + args + "\n" + preamble + script + ")"
 
@@ -86,7 +87,7 @@ def run_scripts(workers, scripts, args, preamble):
             if not resultkey in results:
                 results[resultkey] = {}
             results[resultkey][str(server)] = [server.output.status,
-                                                server.output.stdout]
+                                               server.output.stdout]
             max_retcode = server.output.status
 
         elif script_type == "sequential":
@@ -97,7 +98,7 @@ def run_scripts(workers, scripts, args, preamble):
                 if not resultkey in results:
                     results[resultkey] = {}
                 results[resultkey][str(server)] = [server.output.status,
-                                                    server.output.stdout]
+                                                   server.output.stdout]
 
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
@@ -113,7 +114,7 @@ def run_scripts(workers, scripts, args, preamble):
                 if not resultkey in results:
                     results[resultkey] = {}
                 results[resultkey][str(server)] = [server.output.status,
-                                                    server.output.stdout]
+                                                   server.output.stdout]
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
                     max_retcode = server.output.status
@@ -129,8 +130,8 @@ def run_scripts(workers, scripts, args, preamble):
                 if not resultkey in results:
                     results[resultkey] = {}
                 results[resultkey][str(server)] = [server.output.status,
-                                                    server.output.stdout]
-                expected_stdout = server.output.stdout # save any of them for comparison; doesn't matter which one differs
+                                                   server.output.stdout]
+                expected_stdout = server.output.stdout  # save any of them for comparison; doesn't matter which one differs
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
                     max_retcode = server.output.status
@@ -193,18 +194,12 @@ parser.add_argument("-f", "--fix", dest='fix_flag', action='store_true',
 args = parser.parse_args()
 # local modules
 register_module("wekachecker", DEFAULT)
-#register_module("wekassh", DEFAULT)
 register_module("paramiko", logging.ERROR)
 configure_logging(log, args.verbosity)
 
 # load our ssh configuration
 remote_servers = list()
 
-#try:
-#    wd = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
-#except AttributeError:
-#    ab = os.path.abspath(progname)
-#    wd = os.path.dirname(ab)
 ab = os.path.abspath(progname)
 wd = os.path.dirname(ab)
 
@@ -229,7 +224,7 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
         ot = subprocess.PIPE
         p = subprocess.Popen(["ping", "-c1", server._hostname], stdout=ot, stderr=ot)
         pstdout, pstderr = p.communicate()
-        if p.returncode > 0: 
+        if p.returncode > 0:
             announce(f"Unable to ping {server._hostname}; skipping connect attempt\n")
             server.exc = Exception("Ping failed.")
             continue
@@ -243,8 +238,6 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
             # we had an error connecting
             print(f"Error connecting to {server}: {server.exc}; aborting")
             errors = True
-        #else:
-        #    server.run("sudo /bin/bash")
     if errors:
         sys.exit(1)
 
@@ -275,9 +268,6 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     # save the server names/ips to pass to the subscripts
     arguments = ""
 
-    # if args.verbose_flag:
-    #    arguments = arguments + "-v "
-
     if args.json_flag:
         arguments = arguments + "-j "
 
@@ -304,7 +294,6 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
     print()
     print("RESULTS: " + str(num_passed) + " Tests Passed, " + str(num_failed) + " Failed, " + str(
         num_warned) + " Warnings")
-    # print( json.dumps(cluster_results, indent=2, sort_keys=True) )
 
 # dump out of the pushd() so we can save the test_results.json in the current dir
 fp = open("test_results.json", "w+")  # Vin - add date/time to file name
@@ -312,5 +301,4 @@ fp.write(json.dumps(results, indent=4, sort_keys=True))
 fp.write("\n")
 fp.close()
 
-report.process_json("test_results.json", "test_results.txt", print_stdout=False)
-
+report.process_json("test_results.json", "test_results.txt")
