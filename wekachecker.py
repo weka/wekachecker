@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from colorama import Fore
 from wekapyutils.wekalogging import configure_logging, register_module, DEFAULT
 from wekapyutils.wekassh import RemoteServer, pdsh
+from wekalib.signals import signal_handling
 
 import report
 
@@ -171,6 +172,9 @@ def run_scripts(workers, scripts, args, preamble):
 #
 #   main
 #
+
+# catch signals like ^C and exit gracefully
+signal_handler = signal_handling()
 
 # parse arguments
 progname = sys.argv[0]
