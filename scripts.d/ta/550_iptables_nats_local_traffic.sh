@@ -33,4 +33,8 @@ for IP_ROUTE in $(ip -4 --json route list  | python3 -c 'import sys, json, colle
     fi
 done
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "No iptables re-writing local addresses witnessed"
+fi
+
 exit ${RETURN_CODE}

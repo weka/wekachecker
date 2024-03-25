@@ -21,4 +21,8 @@ for WEKAPID in $(ps -eo pid,comm | grep weka_init | awk '{print $1}') ; do
     fi
 done
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "No Weka processes found using swap"
+fi
+
 exit ${RETURN_CODE}

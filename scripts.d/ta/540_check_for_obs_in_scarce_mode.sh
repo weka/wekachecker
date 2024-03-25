@@ -31,4 +31,8 @@ for OBS_ID in $(weka fs tier s3 --json | python3 -c 'import sys, json; data = js
     fi
 done
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "No Object Stores found in scarce mode"
+fi
+
 exit ${RETURN_CODE}

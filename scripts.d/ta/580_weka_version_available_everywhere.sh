@@ -17,4 +17,8 @@ if [[ ${WEKA_CLUSTER_VERSION} != ${CURRENT_AGENT_VERSION} ]] ; then
     RETURN_CODE="254"
 fi
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "Weka local agent matches cluster running version"
+fi
+
 exit ${RETURN_CODE}
