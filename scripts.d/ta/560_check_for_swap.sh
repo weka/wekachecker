@@ -17,4 +17,8 @@ if [[ ${SWAPTOTAL} -ne "0" ]] ; then
     RETURN_CODE="254"
 fi
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "No swap found - this is a good thing"
+fi
+
 exit ${RETURN_CODE}
