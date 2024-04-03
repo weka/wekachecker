@@ -4,3 +4,4 @@ colorama>=0.4.4
 pip-chill>=1.0.1
 pyinstaller>=4.10
 wekapyutils
+wekalib

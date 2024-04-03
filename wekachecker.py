@@ -11,6 +11,7 @@ import sys
 from contextlib import contextmanager
 
 from colorama import Fore
+from wekalib.signals import signal_handling
 from wekapyutils.wekalogging import configure_logging, register_module, DEFAULT
 from wekapyutils.wekassh import RemoteServer, pdsh
 
@@ -172,10 +173,13 @@ def run_scripts(workers, scripts, args, preamble):
 #   main
 #
 
+# catch signals like ^C and exit gracefully
+signal_handler = signal_handling()
+
 # parse arguments
 progname = sys.argv[0]
 parser = argparse.ArgumentParser(description='Check if servers are ready to run Weka')
-parser.add_argument('servers', metavar='dataplane_ips', type=str, nargs='+',
+parser.add_argument('servers', metavar='dataplane_ips', type=str, nargs='*',
                     help='Server DATAPLANE IPs to execute on')
 parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='store_true',
                     help="Execute cluster-wide scripts")
@@ -191,8 +195,18 @@ parser.add_argument("-v", "--verbose", dest='verbosity', action='store_true', he
 parser.add_argument("-j", "--json", dest='json_flag', action='store_true', help="enable json output mode")
 parser.add_argument("-f", "--fix", dest='fix_flag', action='store_true',
                     help="don't just report, but fix any errors if possible")
+parser.add_argument("--version", dest='version', action='store_true', help="display version info")
 
 args = parser.parse_args()
+
+if args.version:
+    print(f"{progname} version 20240403")
+    sys.exit(0)
+
+if len(args.servers) == 0:
+    print("ERROR: No servers specified")
+    sys.exit(1)
+
 # local modules
 register_module("wekachecker", DEFAULT)
 register_module("paramiko", logging.ERROR)
