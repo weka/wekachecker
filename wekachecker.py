@@ -200,7 +200,7 @@ parser.add_argument("--version", dest='version', action='store_true', help="disp
 args = parser.parse_args()
 
 if args.version:
-    print(f"{progname} version 20240309")
+    print(f"{progname} version 20240403")
     sys.exit(0)
 
 if len(args.servers) == 0:
