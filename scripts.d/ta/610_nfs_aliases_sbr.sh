@@ -88,7 +88,9 @@ ip_in_interface_subnet() {
    #echo "Checking interface $interface for overlap with $ip..."
    local subnet=$(ip -o -f inet addr show "$interface" | grep -v secondary |  awk '{print $4}')
    if [ -n "$subnet" ]; then
-     if ip_in_subnet "$ip" "$subnet"; then return 0 fi
+     if ip_in_subnet "$ip" "$subnet"; then
+       return 0 
+     fi
    fi
    return 1
 }
