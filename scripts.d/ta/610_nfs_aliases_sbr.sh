@@ -7,9 +7,9 @@ SCRIPT_TYPE="parallel"
 JIRA_REFERENCE=""
 WTA_REFERENCE=""
 KB_REFERENCE=""
-RETURN_CODE=0 # 0 - PASS / 255 - HARDFAIL / 254 - WARN / OTHER - FAIL
+RETURN_CODE=0
 
-# Last modified: 2024-04-23
+# Last modified: 2024-04-24
 
 # Known limitations:
 # - Assumes the ganesha container is associated with a container named frontend0
@@ -51,33 +51,29 @@ main() {
      done
    done < <(weka nfs interface-group assignment --no-header | awk '$3 == '$weka_host_id'' | awk '{print $1}')
 
-   nfs_ip_count=0
-   ip_rule_count=0
    # There is more than 1 subnet that overlaps with the NFS alias range.
    # Ostensibly, this would indicate source based routing needs to be configured.
    if [[ $overlapping_subnets -gt 1 ]]; then
      while read NFS_IP; do
        found_rule=0
-       nfs_ip_count=$((nfs_ip_count+1))
        while read IP_RULE_SUBNET; do
          if ip_in_subnet "$NFS_IP" "$IP_RULE_SUBNET"; then
-           echo "Found IP/subnet $IP_RULE_SUBNET in ip rule for address $NFS_IP"
-           ip_rule_count=$((ip_rule_count+1))
+           echo "INFO: Found IP/subnet $IP_RULE_SUBNET in ip rule for address $NFS_IP"
            found_rule=1
            continue
          fi
        done < <(ip -4 rule | awk '{print $3}' | grep -v "all")
-       if [[ $found_rule -eq 0 ]]; then echo "WARNING: No ip rule for address $NFS_IP! It is possible source-based routing should be configured."; fi
-    done < <(weka nfs interface-group assignment --no-header | awk '$3 == '$weka_host_id'' | awk '{print $1}')
+       if [[ $found_rule -eq 0 ]]; then 
+         echo "WARNING: No ip rule for address $NFS_IP! It is possible source-based routing should be configured."
+         RETURN_CODE=254		 
+       fi
+     done < <(weka nfs interface-group assignment --no-header | awk '$3 == '$weka_host_id'' | awk '{print $1}')
 
-    # If the number of NFS aliases is not equal to the number of rules, something is likely amiss -- exit with error
-     if [[ $nfs_ip_count -ne $ip_rule_count ]]; then
-       exit 1
-     fi
+     exit $RETURN_CODE
 
    # No overlapping subnets -- exit w/ success
    else
-     exit 0
+     exit $RETURN_CODE
    fi
 }
 
@@ -139,4 +135,4 @@ ip_in_subnet() {
     fi
 }
 
-main "$@"; exit
+main "$@"
