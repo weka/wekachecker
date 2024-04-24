@@ -2,7 +2,7 @@
 
 #set -ue # Fail with an error code if there's any sub-command/variable error
 
-DESCRIPTION="Verify if source-based IP routing is required (and set up) for NFS aliases"
+DESCRIPTION="Check source-based routing for NFS aliases"
 SCRIPT_TYPE="parallel"
 JIRA_REFERENCE=""
 WTA_REFERENCE=""
