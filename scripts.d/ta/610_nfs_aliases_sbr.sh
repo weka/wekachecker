@@ -73,6 +73,7 @@ main() {
 
    # No overlapping subnets -- exit w/ success
    else
+     echo "No overlapping subnets found"
      exit $RETURN_CODE
    fi
 }

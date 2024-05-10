@@ -14,7 +14,10 @@ NUMBER_OF_NUMA_REGIONS=$(ls -d /sys/devices/system/node/node* | wc -l)
 if [[ ${NUMBER_OF_NUMA_REGIONS} -gt 16 ]] ; then
     echo "There are ${NUMBER_OF_NUMA_REGIONS} NUMA regions"
     echo "Please see ${JIRA_REFERENCE} for more information"
-    RETURN_CODE="254"
+    RETURN_CODE=254
+else
+    echo "Fewer than 17 NUMA regions - test passed"
+    RETURN_CODE=0
 fi
 
 exit ${RETURN_CODE}
