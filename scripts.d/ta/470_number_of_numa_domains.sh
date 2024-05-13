@@ -4,12 +4,12 @@
 
 DESCRIPTION="Check for more than supported number of NUMA domains"
 SCRIPT_TYPE="parallel"
-JIRA_REFERENCE="WEKAPP-342965"
+JIRA_REFERENCE="WEKAPP-361715"
 WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
 
-MAXIMUM_NUMA_DOMAINS="16" # as of 4.2.7
+MAXIMUM_NUMA_DOMAINS="20" # as of 4.2.11
 
 NUMBER_OF_NUMA_DOMAINS=$(ls -d /sys/devices/system/node/node* |wc -l)
 
