@@ -19,7 +19,7 @@ WEKA_HUGE_2M=$(awk -F "=" '/weka/ && /huge/{print $NF}' /proc/*/numa_maps | grep
 
 if [[ -z $WEKA_HUGE_1G && -z $WEKA_HUGE_2M ]]; then
   echo "Unable to determine weka hugepage allocation."
-  exit
+  exit ${RETURN_CODE}
 fi
 
 if [[ -n $WEKA_HUGE_1G ]]; then
