@@ -42,9 +42,9 @@ if [[ $RP_FILTER_VALUE_ALL != "2" ]]; then
       echo "This can disrupt floating IP addresses for protocols."
       echo "It is recommended to set net.ipv4.conf.${INTERFACE}.rp_filter or net.ipv4.conf.all.rp_filter to 2."
     fi
-    else
-      echo "net.ipv4.conf.all.rp_filter is set to 2, no further testing necessary."
   done
+else
+  echo "net.ipv4.conf.all.rp_filter is set to 2, no further testing necessary."
 fi
 
 exit ${RETURN_CODE}
