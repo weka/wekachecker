@@ -4,10 +4,12 @@
 
 DESCRIPTION="Check to see if NetworkManager has ignore-carrier"
 SCRIPT_TYPE="parallel"
-JIRA_REFERENCE=""
+JIRA_REFERENCE="WEKAPP-392845"
 WTA_REFERENCE=""
-KB_REFERENCE=""
+KB_REFERENCE="KB 1214"
 RETURN_CODE=0
+
+# Ref: https://access.redhat.com/solutions/894763
 
 if nmcli -v &> /dev/null; then
   if nmcli dev status | grep connected &> /dev/null; then
