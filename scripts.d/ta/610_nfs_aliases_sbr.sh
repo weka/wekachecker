@@ -33,7 +33,7 @@ main() {
     # Obtain current host id
     # Filtering on container="frontend0" may not be the best approach...
     # We should not filter on hostname, because sometimes Weka hostname does not match the output of hostname with FQDN, so grep instead
-    weka_host_id=$(weka cluster container -o id --no-header -F hostname="$(hostname)" -F container="frontend0")
+    weka_host_id=$(weka cluster container -o id,hostname --no-header -F container="frontend0" | grep -w $(hostname -s) | awk '{print $1}')
     #weka_host_id=$(weka cluster container -o id --no-header -F hostname="$(hostname)")
 
     # Iterate over NFS alias assignments, for this host
@@ -42,6 +42,11 @@ main() {
     #  172.31.80.78  HostId: 14  eth0  nfs-ig1
 
     overlapping_subnets=0
+    # we couldn't find a frontend container; no point checking what IP rules we have
+    if [[ -z ${weka_host_id} ]] ; then
+        echo "Host is not running a frontend - no check required"
+        exit $RETURN_CODE
+    fi
     while read NFS_IP; do
         local interfaces=($(ip -4 -o addr | awk '{print $2}' | uniq))
         for interface in "${interfaces[@]}"; do
