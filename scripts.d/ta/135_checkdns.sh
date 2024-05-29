@@ -5,7 +5,7 @@ SCRIPT_TYPE="parallel"
 
 # Checking OS internal DNS servers
 CURRENT_DNS_SERVER=$(grep -w -m 1 nameserver /etc/resolv.conf | awk {'print $2'})
-if [[ ! -z $CURRENT_DNS_SERVER ]]; then
+if [[ -n $CURRENT_DNS_SERVER ]]; then
 	echo "Found DNS server with IP address of: $CURRENT_DNS_SERVER"
 	which nslookup &> /dev/null
 	if [ $? -eq 1 ]; then
