@@ -15,6 +15,9 @@ RETURN_CODE=0
 if systemctl status falcon-sensor &> /dev/null; then
     echo "Warning: CrowdStrike Falcon Sensor is running"
     exit 254
+elif lsmod | grep -q -m 1 falcon_lsm; then
+    echo "Warning: Crowdstrike Falcon kernel module loaded"
+    exit 254
 fi
 echo "CrowdStrike Falcon Sensor is not running"
 exit 0
