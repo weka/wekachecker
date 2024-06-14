@@ -27,13 +27,13 @@ if [[ ${NUMBER_OF_WEKA_VERSIONS} -ne 1 ]] ; then
 
     CONTAINER_LIST_FILE="/tmp/weka_cluster_container_versions.txt.${RANDOM}"
     # Get the current list of container versions, in case we have older clients
-    weka cluster container --output release --no-header | sort | uniq > ${CONTAINER_LIST_FILE} 2>/dev/null
+    (weka cluster container --output release --no-header ; weka cluster client-target-version show) | sort | uniq > ${CONTAINER_LIST_FILE} 2>/dev/null
 
     NUMBER_OF_POSSIBLY_REDUNDANT_WEKA_VERSIONS=$(weka version | grep -v -f ${CONTAINER_LIST_FILE} | wc -l)
     if [[ ${NUMBER_OF_POSSIBLY_REDUNDANT_WEKA_VERSIONS} -ne 1 ]] ; then
         echo "There is more than one Weka version installed - this is usually a remnant"
         echo "of previous upgrades and not removing older versions".
-        echo "The non-default versions can be removed if required with: "
+        echo "The non-default versions can be removed from each node individually, if required, with: "
         for NON_DEFAULT_WEKA_VERSION in $(weka version | grep -v "^*") ; do
             echo "    weka version rm ${NON_DEFAULT_WEKA_VERSION}"
         done
