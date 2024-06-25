@@ -4,7 +4,7 @@
 
 DESCRIPTION="Check for drives beyond version-specific supported capacities"
 SCRIPT_TYPE="single"
-JIRA_REFERENCE=""
+JIRA_REFERENCE="WEKAPP-324010"
 WTA_REFERENCE=""
 KB_REFERENCE="KB1172"
 RETURN_CODE=0
@@ -42,7 +42,7 @@ LARGEST_SSD=$(weka cluster drive --output size --sort size --raw-units --no-head
 if verlt ${WEKA_VERSION} "4.1.2" && [[ ${LARGEST_SSD} -gt ${LARGEST_SUPPORTED_SSD} ]]; then
     RETURN_CODE=254
     echo "Weka only supports SSDs larger than ${LARGEST_SUPPORTED_SSD} in versions after 4.1.2"
-    echo "Refer to ${KB_REFERENCE} for more information"
+    echo "Refer to ${KB_REFERENCE} or ${JIRA_REFERENCE} for more information"
 
 else
     echo "No SSDs are beyond supported capacities"
