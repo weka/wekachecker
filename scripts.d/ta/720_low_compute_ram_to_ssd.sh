@@ -32,7 +32,7 @@ if [[ ${RAM_TO_SSD_RATIO} -gt 4000 ]]; then
     echo "This may lead to Weka bucket startup issues. Refer to ${JIRA_REFERENCE}"
     RETURN_CODE=254
 else
-    echo "RAM to SSD capacity is well below threshold"
+    echo "RAM to SSD ratio is acceptable"
 fi
 
 exit ${RETURN_CODE}
