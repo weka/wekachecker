@@ -36,7 +36,8 @@ for r in data:
     if r.get("metric") and r["metric"]:
         overlappingRoutesWithMetric[r["dst"]] = overlappingRoutesWithMetric.get(r["dst"], 0) + 1
 
-print(max(overlappingRoutesWithMetric.values()))
+if overlappingRoutesWithMetric:
+    print(max(overlappingRoutesWithMetric.values()))
 ')
 
 if [[ ${NUMBER_OF_OVERLAPPING_ROUTES_WITH_METRICS} -gt "1" ]]; then
