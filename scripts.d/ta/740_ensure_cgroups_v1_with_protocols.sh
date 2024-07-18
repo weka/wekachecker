@@ -29,7 +29,7 @@ if [[ ${CURRENT_CGROUP_MODE} = "tmpfs" ]] ; then
     RETURN_CODE=0
 else
     for CONTAINER in $(weka local ps --no-header | awk '{print $1}' | grep -w -e ganesha -e smbw -e s3) ; do
-        RETURN_CODE=1
+        RETURN_CODE=254
         echo "Protocol container ${CONTAINER} is not yet compatible with cgroup mode ${CURRENT_CGROUP_MODE}"
     done
 fi
