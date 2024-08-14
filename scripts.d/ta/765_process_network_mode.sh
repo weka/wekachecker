@@ -27,32 +27,15 @@ fi
 
 # Iterate over backend weka containers (compute and drives)
 for ROLE in COMPUTE DRIVES; do
-    while read NETMODE; do
-        for MODE in $NETMODE; do
-            if [[ $MODE != "/" ]]; then
-                NETWORK_MODES[$MODE]=$((${NETWORK_MODES[$MODE]:-0}+1))
-            fi
-        done
-    done < <(weka cluster process -b -F role=$ROLE -o netmode --no-header)
-done
-
-
-for MODE in "${!NETWORK_MODES[@]}"; do
-    val=${NETWORK_MODES[$MODE]}
-    mode_status+="$MODE($val) "
-
-    if [[ -z $prev_val ]]; then
-        prev_val=$val
-    elif [[ $prev_val -ne $val ]]; then
+    if [[ $(weka cluster process -F role=${ROLE} -o netmode --no-header | sort | uniq | wc -l) -gt 1 ]]; then
         RETURN_CODE=254
+        echo "WARNING: $ROLE process modes are inconsistent"
     fi
 done
 
 
 if [[ $RETURN_CODE -eq 0 ]]; then
     echo "Backend process network modes are consistent."
-else
-    echo "WARNING: Backend process network modes are inconsistent - $mode_status"
 fi
 
 exit $RETURN_CODE
