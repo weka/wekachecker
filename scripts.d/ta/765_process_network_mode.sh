@@ -25,7 +25,7 @@ elif [[ $? -eq 41 ]]; then
 fi
 
 
-# Iterate over backend weka containers
+# Iterate over backend weka containers (compute and drives)
 for ROLE in COMPUTE DRIVES; do
     while read NETMODE; do
         for MODE in $NETMODE; do
@@ -36,18 +36,23 @@ for ROLE in COMPUTE DRIVES; do
     done < <(weka cluster process -b -F role=$ROLE -o netmode --no-header)
 done
 
+
 for MODE in "${!NETWORK_MODES[@]}"; do
-    num_occurrences=$((${num_occurrences:-0}+${NETWORK_MODES[$MODE]}))
-    mode_status+="$MODE(${NETWORK_MODES[$MODE]}) "
+    val=${NETWORK_MODES[$MODE]}
+    mode_status+="$MODE($val) "
+
+    if [[ -z $prev_val ]]; then
+        prev_val=$val
+    elif [[ $prev_val -ne $val ]]; then
+        RETURN_CODE=254
+    fi
 done
 
-if [ $((num_occurrences % ${#NETWORK_MODES[@]})) -ne 0 ]; then
-    RETURN_CODE=254
-    echo "WARNING: Backend process network modes are inconsistent - $mode_status"
-fi
 
 if [[ $RETURN_CODE -eq 0 ]]; then
     echo "Backend process network modes are consistent."
+else
+    echo "WARNING: Backend process network modes are inconsistent - $mode_status"
 fi
 
 exit $RETURN_CODE
