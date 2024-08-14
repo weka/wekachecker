@@ -29,7 +29,7 @@ fi
 for ROLE in COMPUTE DRIVES; do
     if [[ $(weka cluster process -F role=${ROLE} -o netmode --no-header | sort | uniq | wc -l) -gt 1 ]]; then
         RETURN_CODE=254
-        echo "WARNING: $ROLE process modes are inconsistent"
+        echo "WARNING: $ROLE process network modes are inconsistent"
     fi
 done
 
