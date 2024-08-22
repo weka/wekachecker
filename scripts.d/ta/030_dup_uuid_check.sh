@@ -26,7 +26,7 @@ fi
 
 if [[ $(weka cluster container --no-header -o machineIdentifier,hostname | sort -u | awk '{print $1}' | uniq -d) ]]; then
     echo "WARN: Duplicate UUIDs detected"
-	RETURN_CODE=254
+    RETURN_CODE=254
 else
     echo "No duplicate UUIDs detected"
 fi
