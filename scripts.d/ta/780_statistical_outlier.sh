@@ -81,8 +81,11 @@ for STATISTIC_TO_CHECK in "${CONTAINER_LEVEL_STATISTICS[@]}" ; do
     BACKEND_PROCESSES=$( ( weka cluster process -o id -F role=COMPUTE --no-header ; weka cluster process -o id -F role=DRIVES --no-header ) | paste -sd "," - )
 
     eval $(weka stats --show-internal --stat ${STATISTIC_NAME} --per-process --interval ${INTERVAL} -s value --no-header -o  value -R --process-ids ${BACKEND_PROCESSES} | sed 's/[^0-9\.]//g' |  awk -f ${AWK_TEMP_FILE})
-    if (( $(echo "${HIGHEST_VALUE_SEEN} > (${STDDEV} * ${MAX_STDDEV})" |bc -l) )); then
-        echo "For the Weka container-level statistic ${STATISTIC_NAME} showed some outliers"
+    HIGHEST_VALUE_SEEN_INT="$(printf '%d' ${HIGHEST_VALUE_SEEN}              2> /dev/null)"
+    STDDEV_INT="$(            printf '%d' ${STDDEV}                          2> /dev/null)"
+    MAX_VARIATION_INT="$(     printf '%d' $((${STDDEV_INT}*${MAX_STDDEV}))   2> /dev/null)"
+    if [[ ${HIGHEST_VALUE_SEEN_INT} -gt ${MAX_VARIATION_INT} ]]; then
+        echo "The Weka container-level statistic ${STATISTIC_NAME} showed some statistical outliers"
         echo "This is based on the data having a standard deviation of ${STDDEV}, and the highest value seen"
         echo "${HIGHEST_VALUE_SEEN} which is beyond the arbitrary limit standard_deviation *  ${MAX_STDDEV}"
         echo "This is not conclusive evidence of a problem, however it may be useful as a pointer"
@@ -97,4 +100,3 @@ if [[ ${RETURN_CODE} -eq 0 ]]; then
     echo "No known-significant statistical outliers detected"
 fi
 exit ${RETURN_CODE}
-
