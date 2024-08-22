@@ -4,7 +4,7 @@
 
 DESCRIPTION="Check for duplicate UUIDs"
 # script type is single, parallel, sequential, or parallel-compare-backends
-SCRIPT_TYPE="parallel"
+SCRIPT_TYPE="single"
 JIRA_REFERENCE=""
 WTA_REFERENCE=""
 KB_REFERENCE="KB-000001227"
