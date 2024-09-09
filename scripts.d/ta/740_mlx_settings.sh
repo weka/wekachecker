@@ -48,16 +48,14 @@ if [[ ${#PCI_BUSES[@]} -gt 0 ]]; then
     mst start &> /dev/null
     for PCI in "${!PCI_BUSES[@]}"; do
         if [[ -n ${PCI_BUSES[$PCI]} ]]; then
-            while read DEV; do
-                if mlxconfig -d "$DEV" q | awk '/PCI_WR_ORDERING/ && /(0)/' &> /dev/null; then
-                    RETURN_CODE=254
-                    echo "PCI_WR_ORDERING set to 0 on ${PCI_BUSES[$PCI]} - recommended value is 1."
-                fi
-                if mlxconfig -d "$DEV" q | awk '/ADVANCED_PCI_SETTINGS/ && /(0)/' &> /dev/null; then
-                    RETURN_CODE=254
-                    echo "ADVANCED_PCI_SETTINGS set to 0 on ${PCI_BUSES[$PCI]} - recommended value is 1."
-                fi
-            done < <(mst status -v | awk '/'"${PCI_BUSES[$PCI]}"'/{print $2}')
+             if mlxconfig -d "$PCI" q | grep -q "PCI_WR_ORDERING" | grep -q "(0)"; then
+                 RETURN_CODE=254
+                 echo "PCI_WR_ORDERING set to 0 on ${PCI_BUSES[$PCI]} - recommended value is 1."
+             fi
+             if mlxconfig -d "$PCI" q | grep -q "ADVANCED_PCI_SETTINGS" | grep -q "(0)"; then
+                 RETURN_CODE=254
+                 echo "ADVANCED_PCI_SETTINGS set to 0 on ${PCI_BUSES[$PCI]} - recommended value is 1."
+             fi
         fi
     done
     mst stop &> /dev/null
