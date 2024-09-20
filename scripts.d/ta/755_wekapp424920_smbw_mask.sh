@@ -9,13 +9,6 @@ WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
 
-# Last modified: 2024-08-08
-
-# Known limitations:
-# - Assumes the ganesha container is associated with a container named frontend0
-# - Will not validate the source-based routing rules are correct, only that they exist
-# - Requires that the weka binary be available and the account logged onto the cluster
-
 # Check if we can run weka commands
 weka status &> /dev/null
 if [[ $? -ne 0 ]]; then
