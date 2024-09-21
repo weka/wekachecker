@@ -63,6 +63,7 @@ for ip in ${!BACKEND_IPS[@]}; do
         done
     else
         echo "WARN: Unable to ping $ip"
+        RETURN_CODE=254
     fi
 done
 
