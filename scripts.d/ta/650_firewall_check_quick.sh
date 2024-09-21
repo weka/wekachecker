@@ -66,4 +66,8 @@ for ip in ${!BACKEND_IPS[@]}; do
     fi
 done
 
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    echo "No backend management ports blocked."
+fi
+
 exit ${RETURN_CODE}
