@@ -2,18 +2,18 @@
 
 #set -ue # Fail with an error code if there's any sub-command/variable error
 
-DESCRIPTION="Check tcp / udp connectivity to management ports of backends."
+DESCRIPTION="Check tcp connectivity to management ports of backends."
 SCRIPT_TYPE="single"
 JIRA_REFERENCE=""
 WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
 
-# Last modified: 2024-09-21
+# Last modified: 2024-09-23
 
 # Assumption / limitations
 #  Queries weka local status for valid list of backend IPs
-#  Only performs UDP / TCP pings against the management ports (base_port + 0)
+#  Only performs TCP pings against the management ports (base_port + 0)
 #  Assumes weka local status output structure is static
 
 declare -A BACKEND_IPS
@@ -54,10 +54,6 @@ for ip in ${!BACKEND_IPS[@]}; do
         for port in ${ports[@]}; do
             if (! echo -n 2>/dev/null < /dev/tcp/$ip/$port); then
                 echo "WARN: Unable to connect to $ip tcp/$port"
-                RETURN_CODE=254
-            fi
-            if (! echo -n 2>/dev/null < /dev/udp/$ip/$port); then
-                echo "WARN: Unable to connect to $ip udp/$port"
                 RETURN_CODE=254
             fi
         done
