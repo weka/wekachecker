@@ -11,10 +11,10 @@ RETURN_CODE=0
 
 # Last modified: 2024-09-23
 
-for CLIENT_PROCESS in $(weka cluster process --no-header --output id); do 
-    if [[ $(weka debug net peers --no-header ${CLIENT_PROCESS} --output inMTU,outMTU  | awk '{if($1 != $2) {print "yes"}}') == "yes" ]]; then
-        host=$(weka cluster process ${CLIENT_PROCESS} --no-header -o hostname)
-        echo "WARN: Asymmetric MTU detected for ${host}, process id ${CLIENT_PROCESS}"
+for INDIVIDUAL_DRIVE_PROCESS in $(weka cluster process --backends --filter role=DRIVES --output id,containerId --no-header | uniq -f 1 | awk '{print $1}'); do 
+    if [[ $(weka debug net peers --no-header ${INDIVIDUAL_DRIVE_PROCESS} --output inMTU,outMTU  | awk '{if($1 != $2) {print "yes"}}') == "yes" ]]; then
+        host=$(weka cluster process ${INDIVIDUAL_DRIVE_PROCESS} --no-header -o hostname)
+        echo "WARN: Asymmetric MTU detected for at least one peer of ${host}, process id ${INDIVIDUAL_DRIVE_PROCESS}"
         RETURN_CODE=254
     fi
 done
