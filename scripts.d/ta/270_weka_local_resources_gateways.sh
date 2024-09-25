@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 set -ue # Fail with an error code if there's any sub-command/variable error
 
