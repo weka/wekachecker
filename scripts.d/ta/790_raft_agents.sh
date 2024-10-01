@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ue # Fail with an error code if there's any sub-command/variable error
+#set -ue # Fail with an error code if there's any sub-command/variable error
 
 DESCRIPTION="Examine the number of Raft agents used vs maximum"
 SCRIPT_TYPE="single"
