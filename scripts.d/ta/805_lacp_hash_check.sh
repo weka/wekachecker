@@ -2,7 +2,7 @@
 
 set -ue # Fail with an error code if there's any sub-command/variable error
 
-DESCRIPTION="DPDK LAG Hashing is only supported on CX6-DX and higher"
+DESCRIPTION="Hashing on DPDK LACP links is only supported on CX6-DX and higher"
 SCRIPT_TYPE="parallel"
 JIRA_REFERENCE="WEKAPP-429344"
 WTA_REFERENCE=""
@@ -89,7 +89,7 @@ elif [[ ${#PCI_BUSES[@]} -gt 1 ]]; then
 else
     for NET in "${!NET_MODEL[@]}"; do
         if [[ ! ((${NET_MODEL[${NET}]} =~ "ConnectX-6 Dx") || (${NET_MODEL[${NET}]} =~ "ConnectX-7")) ]]; then
-            echo "WARN: The ${NET} NIC (${NET_MODEL[${NET}]}) may not support LAG hashing."
+            echo "WARN: The ${NET} NIC (${NET_MODEL[${NET}]}) may not support hashing on bonded links."
             RETURN_CODE=254
         fi
     done
