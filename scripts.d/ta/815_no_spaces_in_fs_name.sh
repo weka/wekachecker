@@ -26,6 +26,9 @@ while read -r WEKA_FS_NAME ; do
     if [[ ${WEKA_FS_NAME} = *" "* ]]; then
         echo "Filesystem \"${WEKA_FS_NAME}\" contains spaces"
         echo "This can prevent S3 buckets from being created"
+        NEW_RECOMMENDED_NAME=$(echo ${WEKA_FS_NAME} | sed 's/ /_/g')
+        echo "Recommended resolution: update the cluster name, e.g. using:"
+        echo " weka fs update \"${WEKA_FS_NAME}\" --new-name ${NEW_RECOMMENDED_NAME}"
         RETURN_CODE=254
     fi
 done < <(weka fs --no-header --output name)

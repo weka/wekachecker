@@ -14,6 +14,15 @@ for WEKA_CONTAINER in $(sudo weka local ps --output name --no-header | grep -w -
     if [[ ${MOUNTS_USING_WRITECACHE} != "0" ]]; then
         echo "WARN: container ${WEKA_CONTAINER} - used for protocols - is using writecache on host ${HOSTNAME}"
         echo "Refer to ${JIRA_REFERENCE} for more details"
+        if [[ ${WEKA_CONTAINER} =~ "s3" ]]; then
+            echo "Recommended Resolution: for s3, use the following (brief service interruption):"
+            echo " weka s3 cluster update --mount-options readcache -f"
+        elif [[ ${WEKA_CONTAINER} =~ "smb" ]]; then
+            echo "Recommended Resolution: for smb, for each share, delete it and re-add it (service interruption)"
+        elif [[ ${WEKA_CONTAINER} =~ "ganesha" ]]; then
+            echo "Recommended Resolution: for NFS, for each share, delete it and re-add it (service interruption)"
+        fi
+        
         RETURN_CODE=254
     fi
 done

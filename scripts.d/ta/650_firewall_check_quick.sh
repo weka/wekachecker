@@ -54,6 +54,9 @@ for ip in ${!BACKEND_IPS[@]}; do
         for port in ${ports[@]}; do
             if (! echo -n 2>/dev/null < /dev/tcp/$ip/$port); then
                 echo "WARN: Unable to connect to $ip tcp/$port"
+                echo "Recommended Resolution: There is likely something blocking network communication between"
+                echo "this host and ${ip} tcp/${port}. Please review network connectivity and/or firewalls"
+                echo "In particular DDOS-style protection on switches may prevent communication"
                 RETURN_CODE=254
             fi
         done

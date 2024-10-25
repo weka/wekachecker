@@ -98,6 +98,9 @@ fi
 
 if [[ ${RETURN_CODE} -eq 0 ]]; then
     echo "Bonding properly configured."
+else
+    echo "Recommended Resolution: Determine NIC compatibility with the bonding mode selected:"
+    echo "https://docs.weka.io/planning-and-installation/prerequisites-and-compatibility#networking-ethernet"
 fi
 
 exit ${RETURN_CODE}
