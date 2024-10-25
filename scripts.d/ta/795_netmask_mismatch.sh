@@ -36,7 +36,7 @@ else
     echo "Recommended Resolution: determine which of these netmasks is correct, and rectify the one with"
     echo "the wrong configuration. If Weka needs re-configuring, this will be done with commands like"
     echo " weka local resources --container <WEKA-CONTAINER> net remove <NIC>"
-    echo " weka local resources --container <WEKA-CONTAINER> net add    <NIC> --ips <IP-SPEC> --netmask <BIT-LENGTH>"
+    echo " weka local resources --container <WEKA-CONTAINER> net add    <NIC> --netmask <BIT-LENGTH>"
 fi
 
 exit ${RETURN_CODE}

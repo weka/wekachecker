@@ -35,14 +35,14 @@ if weka smb cluster | awk '/Type:/ && /smbw/' &> /dev/null; then
             if [[ $NUM_SHARES -ne $NUM_FILE_MASKS ]]; then
                 echo "WARN: there are $NUM_SHARES smbw shares, but only $NUM_FILE_MASKS shares with force_create_mode"
                 echo "Recommended Resolution: for each share, delete and re-create it to ensure this mode is set."
-                echo " NB: this will likely be service-affecting"
+                echo " WARNING: this will likely be service-affecting"
                 RETURN_CODE=254
             fi
 
             if [[ $NUM_SHARES -ne $NUM_DIR_MASKS ]]; then
                 echo "WARN: there are $NUM_SHARES smbw shares, but only $NUM_DIR_MASKS shares with force_directory_mode"
                 echo "Recommended Resolution: for each share, delete and re-create it to ensure this mode is set."
-                echo " NB: this will likely be service-affecting"
+                echo " WARNING: this will likely be service-affecting"
                 RETURN_CODE=254
             fi
         else

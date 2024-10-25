@@ -38,7 +38,7 @@ if [[ $((${CURRENT_TIME_EPOCH}-${MOST_RECENT_BUCKET_STARTTIME_EPOCH})) -lt 3600 
     echo "Weka buckets have been restarted within the last hour, or have never started. This may not be a problem on a new cluster"
     echo "but could be indicative of problems (e.g. network flapping)"
     echo "Recommended Resolutions:"
-    echo " . If this is a new cluster,  or hosts have been upgraded/reboot, this is likely expected"
+    echo " . If this is a new cluster, or hosts have been upgraded/reboot, this is likely expected"
     echo " . Otherwise the most likely cause is network problems, such as link flapping or congestion."
     echo " . Review hardware and network stability, then contact customer success"
 fi
@@ -47,7 +47,7 @@ if [[ $((${CURRENT_TIME_EPOCH}-${MOST_RECENT_PROCESS_STARTTIME_EPOCH})) -lt 3600
     echo "Weka processes have been restarted within the last hour, or have never started. This may not be a problem on a new cluster"
     echo "but could be indicative of problems (e.g. network flapping"
     echo "Recommended Resolutions:"
-    echo " . If this is a new cluster,  or hosts have been upgraded/reboot, this is likely expected"
+    echo " . If this is a new cluster, or hosts have been upgraded/reboot, this is likely expected"
     echo " . Otherwise the most likely cause is network problems, such as link flapping or congestion."
     echo " . Review hardware and network stability, then contact customer success"
 fi

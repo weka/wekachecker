@@ -35,7 +35,7 @@ if [[ ${HIGHER_THAN_EXPECTED} == "YES" ]]; then
     echo "This could indicate a number of things, such as splitting of read requests or perhaps read amplification"
     echo "Review ${JIRA_REFERENCE} for details"
     echo "Recommended Resolutions:"
-    echo " . This may be expected behaviour for your workload"
+    echo " . This may be expected behavior for your workload"
     echo " . The data may be read using much larger blocksizes than those in which it was written, and matching those may help"
 fi
 

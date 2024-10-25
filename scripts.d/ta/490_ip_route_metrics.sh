@@ -46,7 +46,7 @@ if [[ ${NUMBER_OF_OVERLAPPING_ROUTES_WITH_METRICS} -gt "1" ]]; then
     echo "that these entries will negatively affect the performance of e.g. floating IP"
     echo "addresses. In any case it is unlikely that preferential IP routes are of"
     echo "benefit in a high-performance local network"
-    echo "Recommended Resolution: review the output of \"ip route\" and rationalise the routes,"
+    echo "Recommended Resolution: review the output of \"ip route\" and rationalize the routes,"
     echo " likely by removing or coalescing the overlapping routes into larger ranges"
 fi
 
