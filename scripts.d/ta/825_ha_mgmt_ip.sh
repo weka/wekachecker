@@ -19,7 +19,14 @@ for WEKA_CONTAINER in $(sudo weka local ps --output name --no-header | grep -e c
         if [[ -n ${NET_NAME} ]]; then
             if [[ $(ip -4 -j -o addr show dev ${NET_NAME} 2>/dev/null | tr -d \"\[:blank:]) =~ "local:"([0-9\.]+) ]]; then
                 NET_IP=${BASH_REMATCH[1]}
-                if [[ ! $(weka local resources -C ${WEKA_CONTAINER} --stable | grep -e ^"Management IPs") =~ ${NET_IP} ]]; then
+                MATCH_FOUND=0
+                for IP in $(weka local resources -C ${WEKA_CONTAINER} --stable | grep -e ^"Management IPs" | grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+"); do
+                    if [[ "${IP}" == "${NET_IP}" ]]; then
+                        MATCH_FOUND=1
+                        break
+                    fi
+                done
+                if [[ ${MATCH_FOUND} -eq 0 ]]; then
                     echo "WARN: Dataplane NIC ${NET_NAME} has IP ${NET_IP}, but this does not appear in the ${WEKA_CONTAINER} container's resources"
                     RETURN_CODE=254
                 fi
