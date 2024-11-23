@@ -1,0 +1,5 @@
+TEST_DESCRIPTION="Possible faulty NVMEs"
+INTERNAL_REFERENCE="WEKAPP-365973"
+DRIVE_TESTS["ssd/SSD_READ_LATENCY"]="individual:more_than:500ms:-2m"
+CLUSTER_TESTS["ops_driver/READ_LATENCY"]="average:more_than:12ms:-2m"
+CLUSTER_TESTS["rpc/CLIENT_ROUNDTRIP_AVG"]="average:more_than:5ms:-2m"
