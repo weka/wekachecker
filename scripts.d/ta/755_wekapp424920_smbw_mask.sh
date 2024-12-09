@@ -9,13 +9,6 @@ WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
 
-# Last modified: 2024-08-08
-
-# Known limitations:
-# - Assumes the ganesha container is associated with a container named frontend0
-# - Will not validate the source-based routing rules are correct, only that they exist
-# - Requires that the weka binary be available and the account logged onto the cluster
-
 # Check if we can run weka commands
 weka status &> /dev/null
 if [[ $? -ne 0 ]]; then
@@ -41,11 +34,15 @@ if weka smb cluster | awk '/Type:/ && /smbw/' &> /dev/null; then
 
             if [[ $NUM_SHARES -ne $NUM_FILE_MASKS ]]; then
                 echo "WARN: there are $NUM_SHARES smbw shares, but only $NUM_FILE_MASKS shares with force_create_mode"
+                echo "Recommended Resolution: for each share, delete and re-create it to ensure this mode is set."
+                echo " WARNING: this will likely be service-affecting"
                 RETURN_CODE=254
             fi
 
             if [[ $NUM_SHARES -ne $NUM_DIR_MASKS ]]; then
                 echo "WARN: there are $NUM_SHARES smbw shares, but only $NUM_DIR_MASKS shares with force_directory_mode"
+                echo "Recommended Resolution: for each share, delete and re-create it to ensure this mode is set."
+                echo " WARNING: this will likely be service-affecting"
                 RETURN_CODE=254
             fi
         else
