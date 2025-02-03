@@ -3,6 +3,10 @@
 declare -A DRIVE_TESTS
 declare -A CLUSTER_TESTS
 
+DESCRIPTION="Examine WEKA stats for known performance impacts"
+SCRIPT_TYPE="single"
+
+
 # How this works:
 #   This shell loops through all .test files.
 #   It starts out assuming the test matches (i.e. the result is true).
