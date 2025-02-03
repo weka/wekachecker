@@ -20,7 +20,7 @@ convert_to_standard_units() {
     # Now we need to convert VALUE to standardised units. We can't rely on the existence of units(1) or $(systemd-analyze timestamp), unfortunately
     #   This means we're going to convert using sed and awk, for which I apologize
     # right now we're only calculating based on units of time, and we only seem to see micro- and milliseconds.
-    VALUE_CALC=$(echo ${VALUE} | sed 's! *µs!/1000000!g;s! *ms!/1000!g;s! *!!g;s!s$!!g')
+    VALUE_CALC=$(echo ${VALUE} | sed 's! *µs!/1000000!g;s! *ms!/1000!g;s! *!!g;s!s$!!g;s!%!!g')
     STANDARDIZED_VALUE=$(echo | awk "{print ${VALUE_CALC}"})
     echo ${STANDARDIZED_VALUE}
 }
