@@ -25,7 +25,7 @@ convert_to_standard_units() {
     echo ${STANDARDIZED_VALUE}
 }
 
-for TESTFILE in *.test ; do
+for TESTFILE in .*.test ; do
     TEST_RESULTS_MATCHED="1"
     . ${TESTFILE}
     echo "Looking for ${TEST_DESCRIPTION}"
