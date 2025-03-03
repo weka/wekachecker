@@ -200,7 +200,7 @@ parser.add_argument("--version", dest='version', action='store_true', help="disp
 args = parser.parse_args()
 
 if args.version:
-    print(f"{progname} version 20240403")
+    print(f"{progname} version 20250303")
     sys.exit(0)
 
 if len(args.servers) == 0:
@@ -244,7 +244,7 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
             server.exc = Exception("Ping failed.")
             continue
         server.connect()
-        if len(server.password) > 0 and server.password != pw:
+        if server.password is not None and len(server.password) > 0 and server.password != pw:
             user, pw = server.user, server.password
 
     errors = False
