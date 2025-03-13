@@ -25,7 +25,7 @@ declare -A NIC_LIDS
 # Is the cluster using a NIC over Infiniband?
 while read CONTAINER; do
     while read NET_ENTRY; do
-        if [[ ${NET_ENTRY} =~ "name:"(.*) ]]; then
+        if [[ ${NET_ENTRY} =~ "name:"([^.]*) ]]; then
             NET_NAME=${BASH_REMATCH[1]}
             if [[ $(cat /sys/class/net/${NET_NAME}/type) == 32 ]]; then
                 IB_INTERFACE=${NET_NAME}
