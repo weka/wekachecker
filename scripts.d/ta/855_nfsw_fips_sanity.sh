@@ -103,7 +103,7 @@ if jq --version &> /dev/null; then
             # Does the FIP exist on a local interface?
             if ip -4 -o addr show | awk '{print $4}' | cut -d'/' -f1 | grep -qw ${FIP_IP}; then
                 # Does the FIP appear in the global table for this host?
-                if ! printf "%s" "${FIPS_GLOBAL_TABLE}" | grep -q "OK" | grep -q "NodeId<${PROCESS_ID}>"; then
+                if ! printf "%s" "${FIPS_GLOBAL_TABLE}" | grep "OK" | grep -q "NodeId<${PROCESS_ID}>"; then
                     echo "WARN: Global state FIP ${FIP_IP} not found for process ${PROCESS_ID}"
                     RETURN_CODE=254
                 fi
