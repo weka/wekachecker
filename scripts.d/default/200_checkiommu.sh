@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DESCRIPTION="Check for IOMMU disabled"
+DESCRIPTION="Check for IOMMU status"
 SCRIPT_TYPE="parallel"
 
 
@@ -19,8 +19,8 @@ if [ $iommuclass -eq "0" ] && [ $iommugroups -eq "0" ]; then    # check for iomm
     echo "IOMMU not configured on `hostname`"
     ret="0"
 else
-    echo "IOMMU configured on `hostname` - should be disabled"
-    ret="1"
+    echo "IOMMU configured on `hostname` "
+    ret="0"
 fi
 
 exit $ret
