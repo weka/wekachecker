@@ -87,7 +87,9 @@ def run_scripts(workers, scripts, args, preamble):
             # run on a single server - doesn't matter which
             server.run(command)
             if not resultkey in results:
-                results[resultkey] = {}
+                results[resultkey] = dict()
+            if server.output.stdout == AWS_error:
+                server.output.status = 255
             results[resultkey][str(server)] = [server.output.status,
                                                server.output.stdout]
             max_retcode = server.output.status
@@ -98,7 +100,9 @@ def run_scripts(workers, scripts, args, preamble):
                 # run on all servers, but one at a time (sequentially)
                 server.run(command)
                 if not resultkey in results:
-                    results[resultkey] = {}
+                    results[resultkey] = dict()
+                if server.output.stdout == AWS_error:
+                    server.output.status = 255
                 results[resultkey][str(server)] = [server.output.status,
                                                    server.output.stdout]
 
