@@ -44,10 +44,13 @@ def find_value(script, name):
     # ignore comments, check it's bounded by Beginning-of-line or =. Could arguably use \b
     search_re = re.compile(r'^ *' + re.escape(name) + r'="([^"]+)"', re.MULTILINE)
     matches = re.findall(search_re, script)
-    if (matches):
-        return (matches[0])
+    if matches:
+        return matches[0]
     else:
-        return ("ERROR: Script lacks variable declaration for " + name)
+        return "ERROR: Script lacks variable declaration for " + name
+
+
+AWS_error = 'Please login as the user "ec2-user" rather than the user "root".\n\n'
 
 
 # pass server name/ip, ssh session, and list of scripts
@@ -87,6 +90,8 @@ def run_scripts(workers, scripts, args, preamble):
             server.run(command)
             if not resultkey in results:
                 results[resultkey] = {}
+            if server.output.stdout == AWS_error:
+                server.output.status = 255
             results[resultkey][str(server)] = [server.output.status,
                                                server.output.stdout]
             max_retcode = server.output.status
@@ -114,6 +119,8 @@ def run_scripts(workers, scripts, args, preamble):
             for server in workers:
                 if not resultkey in results:
                     results[resultkey] = {}
+                if server.output.stdout == AWS_error:
+                    server.output.status = 255
                 results[resultkey][str(server)] = [server.output.status,
                                                    server.output.stdout]
                 # note if any failed/warned.
@@ -268,7 +275,7 @@ with pushd(wd):  # change to this dir so we can find "./scripts.d"
         if args.clusterscripts:
             scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/0*")]
         if args.serverscripts:
-            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/[1-2]*")]
+            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/[1-9]*")]
 
     # sort them so they execute in the correct order
     scripts.sort()
