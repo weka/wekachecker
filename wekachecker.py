@@ -44,10 +44,13 @@ def find_value(script, name):
     # ignore comments, check it's bounded by Beginning-of-line or =. Could arguably use \b
     search_re = re.compile(r'^ *' + re.escape(name) + r'="([^"]+)"', re.MULTILINE)
     matches = re.findall(search_re, script)
-    if (matches):
-        return (matches[0])
+    if matches:
+        return matches[0]
     else:
-        return ("ERROR: Script lacks variable declaration for " + name)
+        return "ERROR: Script lacks variable declaration for " + name
+
+
+AWS_error = 'Please login as the user "ec2-user" rather than the user "root".\n\n'
 
 
 # pass server name/ip, ssh session, and list of scripts
@@ -119,6 +122,8 @@ def run_scripts(workers, scripts, args, preamble):
             for server in workers:
                 if not resultkey in results:
                     results[resultkey] = {}
+                if server.output.stdout == AWS_error:
+                    server.output.status = 255
                 results[resultkey][str(server)] = [server.output.status,
                                                    server.output.stdout]
                 # note if any failed/warned.
@@ -345,8 +350,64 @@ if __name__ == "__main__":
         print("ERROR: No servers specified")
         sys.exit(1)
 
-    # local modules
-    register_module("wekachecker", DEFAULT)
-    register_module("paramiko", logging.ERROR)
-    configure_logging(log, args.verbosity)
-    checker(args)
+    # ok, we're good... let's go
+    results = dict()
+
+    # get the list of scripts in ./etc/scripts.d
+    if not args.clusterscripts and not args.serverscripts:
+        # unspecicified by user so execute all scripts
+        scripts = [f for f in glob.glob(f"./scripts.d/{args.workload}/[0-9]*")]
+    else:
+        scripts = list()
+        if args.clusterscripts:
+            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/0*")]
+        if args.serverscripts:
+            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/[1-9]*")]
+
+    # sort them so they execute in the correct order
+    scripts.sort()
+
+    # get the preamble file - commands and settings for all scripts
+    preamblefile = open(f"scripts.d/{args.workload}/preamble")
+    if preamblefile.mode == "r":
+        preamble = preamblefile.read()  # suck in the contents of the preamble file
+    else:
+        preamble = ""  # open failed
+
+    # save the server names/ips to pass to the subscripts
+    arguments = ""
+
+    if args.json_flag:
+        arguments = arguments + "-j "
+
+    if args.fix_flag:
+        arguments = arguments + "-f "
+
+    if args.clusterip is not None and args.workload == "client":
+        arguments = arguments + "--clusterip " + args.clusterip
+    else:
+        if args.clusterip is not None:
+            print("ERROR: --clusterip is only valid with --workload client")
+            sys.exit(1)
+
+    for server in args.servers:
+        arguments += server + ' '
+
+    cluster_results = {}
+
+    num_passed, num_warned, num_failed, results = run_scripts(remote_servers, scripts, arguments, preamble)
+
+    if args.json_flag:
+        print(json.dumps(results, indent=2, sort_keys=True))
+
+    print()
+    print("RESULTS: " + str(num_passed) + " Tests Passed, " + str(num_failed) + " Failed, " + str(
+        num_warned) + " Warnings")
+
+# dump out of the pushd() so we can save the test_results.json in the current dir
+fp = open("test_results.json", "w+")  # Vin - add date/time to file name
+fp.write(json.dumps(results, indent=4, sort_keys=True))
+fp.write("\n")
+fp.close()
+
+report.process_json("test_results.json", "test_results.txt")
