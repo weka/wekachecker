@@ -7,6 +7,8 @@ SCRIPT_TYPE="parallel"
 which ofed_info &> /dev/null
 if [ $? != 0 ]; then
     echo "OFED not installed"
+    echo "Note that this is only supported with WEKA >= 4.4."
+    echo "Please verify that you are running a supported version of WEKA."
     exit 254
 fi
 
