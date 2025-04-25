@@ -353,4 +353,14 @@ if __name__ == "__main__":
     register_module("wekachecker", DEFAULT)
     register_module("paramiko", logging.ERROR)
     configure_logging(log, args.verbosity)
+
+    try:
+        args.basedir = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
+    except AttributeError:
+        args.basedir = os.path.dirname(sys.argv[0])
+
+    args.cur_dir = os.getcwd()
+    if len(args.basedir) == 0:
+        args.basedir = args.cur_dir
+
     checker(args)
