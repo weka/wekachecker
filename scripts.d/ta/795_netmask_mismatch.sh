@@ -54,7 +54,7 @@ while read WEKA_CONTAINER WEKA_CONTAINER_PORT; do
                     if [[ ${NET_MASK} != ${NET_MASK_OS} ]]; then
                         echo "WARN: ${NET_NAME} has netmask mismatch between weka resources (${NET_MASK}) and OS (${NET_MASK_OS}):"
                         echo "Recommended Resolution: determine the correct netmasks of the interfaces being used by Weka."
-                        echo "If Weka needs reconfigured, this will be done with commands like:"
+                        echo "If Weka needs to be reconfigured, this will be done with commands like:"
                         echo " weka local resources -C <WEKA-CONTAINER> net remove <NIC>"
                         echo " weka local resources -C <WEKA-CONTAINER> net add    <NIC> --netmask <BIT-LENGTH> --gateway <OPTIONAL GATEWAY>"
                         echo " weka local resources -C <WEKA-CONTAINER> apply"
@@ -62,7 +62,7 @@ while read WEKA_CONTAINER WEKA_CONTAINER_PORT; do
                     fi
                 fi
             else
-                echo "ERORR: Specified NIC (${NET_NAME}) not found."
+                echo "ERROR: Specified NIC (${NET_NAME}) not found."
                 echo "Recommended Resolution: ensure the resource configuration is properly specified."
                 echo "Review the output of weka local resources -C ${WEKA_CONTAINER} for validity."
                 RETURN_CODE=255
