@@ -30,7 +30,7 @@ for WEKAFS in $(weka fs -o name --no-header) ; do
     AVAILABLE_SSD=$(weka fs -F name=${WEKAFS} -J | grep -w available_ssd | sed 's/[^0-9]//g')
     RATIO=$(awk -v used=${USED_SSD} -v available=${AVAILABLE_SSD} 'BEGIN { printf "%d", (used / available) * 100}')
     if [[ ${RATIO} -ge ${THRESHOLD_FILL_LEVEL} ]] ; then
-        echo "Filesystem ${WEKAFS} is ${RATIO}% full, and suffer write hanging in the loss of a failure domain"
+        echo "Filesystem ${WEKAFS} is ${RATIO}% full, and may suffer write hanging in the loss of a failure domain"
         echo "Recommended resolution: allocate a hot-spare"
         RETURN_CODE=254
     fi
@@ -39,7 +39,11 @@ done
 if [[ ${RETURN_CODE} -eq 0 ]]; then
     echo "No problems detected"
 else
-    echo "At least one capacity-related problems was detected, which might lead to write hangs in the case of hardware failure"
+    echo "At least one filesystem has been identified which is filled beyond the capacity "
+    echo " calculated to be available if a single failure domain were to be lost.
+    echo "This might lead to write hangs in the case of hardware failure."
+    echo "Recommended resolution: Allocate hot-spare capacity or otherwise increase free space"
 fi
+
 
 exit ${RETURN_CODE}
