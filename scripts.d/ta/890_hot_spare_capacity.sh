@@ -40,7 +40,7 @@ if [[ ${RETURN_CODE} -eq 0 ]]; then
     echo "No problems detected"
 else
     echo "At least one filesystem has been identified which is filled beyond the capacity "
-    echo " calculated to be available if a single failure domain were to be lost.
+    echo " calculated to be available if a single failure domain were to be lost."
     echo "This might lead to write hangs in the case of hardware failure."
     echo "Recommended resolution: Allocate hot-spare capacity or otherwise increase free space"
 fi
