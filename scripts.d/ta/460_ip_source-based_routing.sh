@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-#set -ue # Fail with an error code if there's any sub-command/variable error
+set -ueo pipefail # Fail with an error code if there's any sub-command/variable error
 
 DESCRIPTION="Verify if source-based IP routing is required (and set up)"
 SCRIPT_TYPE="parallel"
@@ -54,30 +54,68 @@ declare -A WEKA_INTERFACES_OVERLAP
 
 get_network_prefix() {
     local cidr="$1"
-    local ip subnet mask i IFS=.
 
-    # Extract IP and subnet mask length
-    ip="${cidr%/*}"      # Get the IP portion before '/'
-    subnet="${cidr#*/}"  # Get the number after '/'
+    if [[ "$cidr" == *:* ]]; then
+        # IPv6 Handling (manual, Bash-only)
+        local ip="${cidr%/*}"
+        local prefix_len="${cidr#*/}"
+        local -a blocks
 
-    # Convert subnet length to a bitmask
-    mask=$(( (1 << subnet) - 1 << (32 - subnet) ))
+        # Expand abbreviated IPv6 address (::, etc.)
+        IFS=':' read -ra parts <<< "$ip"
+        local num_parts=${#parts[@]}
 
-    # Split IP into octets
-    set -- $ip
-    local -a octets=($1 $2 $3 $4)
+        local fill=$(( 8 - num_parts + 1 ))
+        for ((i=0; i<num_parts; i++)); do
+            if [[ -z "${parts[i]}" ]]; then
+                # "::" detected — expand zeros
+                for ((j=0; j<fill; j++)); do
+                    blocks+=("0000")
+                done
+            else
+                blocks+=("$(printf '%04x' 0x${parts[i]})")
+            fi
+        done
 
-    # Convert IP octets to a 32-bit integer
-    local ip_int=$(( (${octets[0]} << 24) | (${octets[1]} << 16) | (${octets[2]} << 8) | ${octets[3]} ))
+        # Fill to 8 hextets if needed
+        while [ "${#blocks[@]}" -lt 8 ]; do
+            blocks+=("0000")
+        done
 
-    # Apply subnet mask
-    local net_int=$(( ip_int & mask ))
+        # Determine how many full hextets belong to the network prefix
+        local full_blocks=$(( prefix_len / 16 ))
+        local partial_bits=$(( prefix_len % 16 ))
 
-    # Convert back to dotted decimal format
-    local net_addr=$(( (net_int >> 24) & 255 )).$(( (net_int >> 16) & 255 )).$(( (net_int >> 8) & 255 )).$(( net_int & 255 ))
+        for ((i=0; i<8; i++)); do
+            if (( i < full_blocks )); then
+                continue
+            elif (( i == full_blocks && partial_bits > 0 )); then
+                local val=$(( 0x${blocks[i]} ))
+                local mask=$(( 0xFFFF << (16 - partial_bits) & 0xFFFF ))
+                blocks[i]=$(printf '%04x' $(( val & mask )))
+            else
+                blocks[i]="0000"
+            fi
+        done
 
-    echo "$net_addr"
+        # Reconstruct IPv6 prefix (remove leading zeros and compress if needed)
+        local prefix=$(IFS=:; echo "${blocks[*]}")
+        echo "$prefix"
+    else
+        # IPv4 Handling
+        local ip subnet mask IFS=.
+        ip="${cidr%/*}"
+        subnet="${cidr#*/}"
+        mask=$(( (1 << subnet) - 1 << (32 - subnet) ))
+        set -- $ip
+        local -a octets=($1 $2 $3 $4)
+        local ip_int=$(( (${octets[0]} << 24) | (${octets[1]} << 16) | (${octets[2]} << 8) | ${octets[3]} ))
+        local net_int=$(( ip_int & mask ))
+        local net_addr=$(( (net_int >> 24) & 255 )).$(( (net_int >> 16) & 255 )).$(( (net_int >> 8) & 255 )).$(( net_int & 255 ))
+        echo "$net_addr"
+    fi
 }
+
 
 
 # Checks: 
