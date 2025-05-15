@@ -11,7 +11,7 @@ RETURN_CODE=0
 
 # We can't rely on jq :(
 for WEKA_CONTAINER in $(sudo weka local ps --output name --no-header | grep -e drive -e compute -e frontend); do
-    for NETWORK_DEVICE in $(weka local resources net --container ${WEKA_CONTAINER} --json | grep name | awk '{print $2}' | sed 's/[^0-9a-zA-Z]//g'); do
+    for NETWORK_DEVICE in $(weka local resources net --container ${WEKA_CONTAINER} --json --stable | grep name | awk '{print $2}' | sed 's/[^0-9a-zA-Z]//g'); do
         # need to find the fastest shared link speed between "supported" and "advertised" links.
         # there's no /sys/class/net interface to this, and the only kernel interface is ethtool-netlink, as far as I can find:
         #   https://www.kernel.org/doc/html/v5.9/networking/ethtool-netlink.html#linkmodes-get
