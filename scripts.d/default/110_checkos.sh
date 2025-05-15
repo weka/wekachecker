@@ -13,6 +13,9 @@ unsupported_version=0
 warning=0
 client_only=0
 
+echo Version_Id $VERSION_ID
+echo ID $ID
+
 case $ID in
 	'centos')
 		case $VERSION_ID in
@@ -25,7 +28,7 @@ case $ID in
 	'rhel')
 		case $VERSION_ID in 
 			'8.'[0-9]) ;;
-	    '8.10') ;;
+			'8.10') ;;
 			'9.'[0-4]) ;; # change to warning=1 when RHEL 9 is supported
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
@@ -55,8 +58,10 @@ case $ID in
 
 	'alma')
 		case $VERSION_ID in 
-	    '8.10') client_only=1 ;;
-			'9.4') client_only=1 ;; # change to warning=1 when RHEL 9 is supported
+
+			'8.'[0-9]) client_only=1 ;;
+			'8.10') client_only=1 ;;
+			'9.'[0-4]) client_only=1 ;; # change to warning=1 when RHEL 9 is supported
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac

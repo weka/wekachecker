@@ -206,10 +206,11 @@ def checker(args):
     # load our ssh configuration
     remote_servers = list()
 
-    ab = os.path.abspath(progname)
-    wd = os.path.dirname(ab)
+    #ab = os.path.abspath(args.wd)
+    #wd = os.path.dirname(ab)
+    #wd = args.basedir
 
-    with pushd(wd):  # change to this dir so we can find "./scripts.d"
+    with pushd(args.basedir):  # change to this dir so we can find "./scripts.d"
         # make sure passwordless ssh works to all the servers because nothing will work if not set up
         announce("Opening ssh sessions to all servers\n")
         parallel_threads = {}
@@ -248,6 +249,7 @@ def checker(args):
             sys.exit(1)
 
         # get the list of scripts in ./etc/scripts.d
+        """
         if not args.clusterscripts and not args.serverscripts:
             # unspecicified by user so execute all scripts
             scripts = [f for f in glob.glob(f"./scripts.d/{args.workload}/[0-9]*")]
@@ -257,6 +259,8 @@ def checker(args):
                 scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/0*")]
             if args.serverscripts:
                 scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/[1-2]*")]
+        """
+        scripts = [f for f in glob.glob(f"./scripts.d/{args.workload}/[0-9]*")]
 
         # sort them so they execute in the correct order
         scripts.sort()
@@ -271,8 +275,8 @@ def checker(args):
         # save the server names/ips to pass to the subscripts
         arguments = ""
 
-        if args.json_flag:
-            arguments = arguments + "-j "
+        #if args.json_flag:
+        #    arguments = arguments + "-j "
 
         if args.fix_flag:
             arguments = arguments + "-f "
@@ -291,8 +295,8 @@ def checker(args):
 
         num_passed, num_warned, num_failed, results = run_scripts(remote_servers, scripts, arguments, preamble)
 
-        if args.json_flag:
-            print(json.dumps(results, indent=2, sort_keys=True))
+        #if args.json_flag:
+        #    print(json.dumps(results, indent=2, sort_keys=True))
 
         print()
         print("RESULTS: " + str(num_passed) + " Tests Passed, " + str(num_failed) + " Failed, " + str(
@@ -319,10 +323,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Check if servers are ready to run Weka')
     parser.add_argument('servers', metavar='dataplane_ips', type=str, nargs='*',
                         help='Server DATAPLANE IPs to execute on')
-    parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='store_true',
-                        help="Execute cluster-wide scripts")
-    parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store_true',
-                        help="Execute server-specific scripts")
+    #parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='store_true',
+    #                    help="Execute cluster-wide scripts")
+    #parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store_true',
+    #                    help="Execute server-specific scripts")
     parser.add_argument("-w", "--workload", dest='workload', default="default",
                         help="workload definition directory (a subdir of scripts.d)")
     parser.add_argument("--clusterip", dest='clusterip', default=None,
@@ -349,4 +353,14 @@ if __name__ == "__main__":
     register_module("wekachecker", DEFAULT)
     register_module("paramiko", logging.ERROR)
     configure_logging(log, args.verbosity)
+
+    try:
+        args.basedir = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
+    except AttributeError:
+        args.basedir = os.path.dirname(sys.argv[0])
+
+    args.cur_dir = os.getcwd()
+    if len(args.basedir) == 0:
+        args.basedir = args.cur_dir
+
     checker(args)
