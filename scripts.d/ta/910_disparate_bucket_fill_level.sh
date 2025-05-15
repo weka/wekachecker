@@ -34,6 +34,9 @@ LEAST_FULL_BUCKET=$(weka cluster bucket -o fillLevel -s -fillLevel --no-header |
 # If it's less than 10% full, not worth looking at because there's probably a disparity anyway
 WORTH_EXAMINING=$(awk -v most_full=${MOST_FULL_BUCKET} 'BEGIN {if (most_full < 10) print "Skip"; else print "Examine";}')
 if [[ "${WORTH_EXAMINING}" == "Examine" ]] ; then
+    if [[ "${LEAST_FULL_BUCKET}" == "0" ]] ; then
+        LEAST_FULL_BUCKET="0.1"                    # clumsily avoid divide by zero risk
+    fi
     RESULT=$(awk -v most_full=${MOST_FULL_BUCKET} -v least_full=${LEAST_FULL_BUCKET} 'BEGIN { if((most_full / least_full)>1.5) print "Disparity"; else print "Normal";}')
     if [[ "${RESULT}" == "Disparity" ]] ; then
         RETURN_CODE=254
