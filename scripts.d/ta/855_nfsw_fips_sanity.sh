@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#set -ue # Fail with an error code if there's any sub-command/variable error
+set -ueo pipefail # Fail with an error code if there's any sub-command/variable error
 
 DESCRIPTION="NFSW FIPs validation"
 # script type is single, parallel, sequential, or parallel-compare-backends
@@ -9,14 +9,16 @@ SCRIPT_TYPE="parallel"
 RETURN_CODE=0
 
 # Check if we can run weka commands
-if ! weka status &> /dev/null; then
-    echo "ERROR: Not able to run weka commands"
-    exit 254
-fi
+weka status &> /dev/null
+RC=$?
 
-case $? in
+case ${RC} in
+    254)
+        echo "ERROR: Not able to run weka commands."
+        exit 254
+        ;;
     127)
-        echo "WEKA not found"
+        echo "WEKA not found."
         exit 254
         ;;
     41)
@@ -101,7 +103,7 @@ if jq --version &> /dev/null; then
         # Only care about entries in "OK" status?
         if [[ ${FIP_STATUS} == "OK" ]]; then
             # Does the FIP exist on a local interface?
-            if ip -4 -o addr show | awk '{print $4}' | cut -d'/' -f1 | grep -qw ${FIP_IP}; then
+            if ip -j -o addr show 2>/dev/null | grep -qw "$FIP_IP"; then
                 # Does the FIP appear in the global table for this host?
                 if ! printf "%s" "${FIPS_GLOBAL_TABLE}" | grep "OK" | grep -q "NodeId<${PROCESS_ID}>"; then
                     echo "WARN: Global state FIP ${FIP_IP} not found for process ${PROCESS_ID}"
