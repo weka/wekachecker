@@ -42,14 +42,16 @@ done < <(weka local ps --output name --no-header | grep -e compute -e drives)
 # If there are Infiniband NICs in use by WEKA, compare the LIDs
 if [[ -n ${!NIC_LIDS[@]} ]]; then
     for NIC in ${!NIC_LIDS[@]}; do
-        MANHOLE=$(weka debug manhole -T 5s --slot 0 network_get_dpdk_ports | grep -E '(netdevName|lid)' | paste - - | grep ${NIC} | tr -d '[:space:]' | sed 's/"//g')
-        if [[ ${MANHOLE} =~ lid:([[:digit:]]+) ]]; then
-            WEKA_LID=${BASH_REMATCH[1]}
-            if [[ ${NIC_LIDS[${NIC}]} != ${WEKA_LID} ]]; then
-                echo "WARN: ${NIC} reports LID ${NIC_LIDS[${NIC}]} but WEKA reports LID ${WEKA_LID}"
-                RETURN_CODE=254
+        while read WEKA_CONTAINER WEKA_CONTAINER_PORT; do
+            MANHOLE=$(weka debug manhole -P ${WEKA_CONTAINER_PORT} -T 5s --slot 1 network_get_dpdk_ports | grep -E '(netdevName|lid)' | paste - - | grep ${NIC} | tr -d '[:space:]' | sed 's/"//g')
+            if [[ ${MANHOLE} =~ lid:([[:digit:]]+) ]]; then
+                WEKA_LID=${BASH_REMATCH[1]}
+                if [[ ${NIC_LIDS[${NIC}]} != ${WEKA_LID} ]]; then
+                    echo "WARN: ${NIC} reports LID ${NIC_LIDS[${NIC}]} but WEKA container ${WEKA_CONTAINER} reports LID ${WEKA_LID}"
+                    RETURN_CODE=254
+                fi
             fi
-        fi
+        done < <(weka local ps --output name,port --no-header | awk '/compute|drive|frontend/')
     done
 fi
 
