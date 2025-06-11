@@ -36,7 +36,7 @@ while read CONTAINER; do
             fi
         fi
     done < <(weka local resources -C ${CONTAINER} net --stable -J | grep -w -e name | tr -d \"\,[:blank:])
-done < <(weka local ps --output name --no-header | grep -e compute -e drives)
+done < <(weka local ps --output name --no-header | awk '/compute|drive|frontend/')
 
 
 # If there are Infiniband NICs in use by WEKA, compare the LIDs
