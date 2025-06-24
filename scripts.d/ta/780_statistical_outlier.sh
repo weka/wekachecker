@@ -90,13 +90,16 @@ for STATISTIC_TO_CHECK in "${CONTAINER_LEVEL_STATISTICS[@]}" ; do
     HIGHEST_VALUE_SEEN_INT="$(printf '%d' ${HIGHEST_VALUE_SEEN}              2> /dev/null)"
     STDDEV_INT="$(            printf '%d' ${STDDEV}                          2> /dev/null)"
     MAX_VARIATION_INT="$(     printf '%d' $((${STDDEV_INT}*${MAX_STDDEV}))   2> /dev/null)"
-    if [[ ${HIGHEST_VALUE_SEEN_INT} -gt ${MAX_VARIATION_INT} ]]; then
-        echo "The Weka container-level statistic ${STATISTIC_NAME} showed some statistical outliers"
-        echo "This is based on the data having a standard deviation of ${STDDEV}, and the highest value seen"
-        echo "${HIGHEST_VALUE_SEEN} which is beyond the arbitrary limit standard_deviation *  ${MAX_STDDEV}"
-        echo "This is not conclusive evidence of a problem, however it may be useful as a pointer"
-        echo "The data checked is from weka stats --show-internal --stat ${STATISTIC_NAME} --per-process --interval ${INTERVAL} -s value --no-header -o  value -R  --process-ids ${BACKEND_PROCESSES}"
-        RETURN_CODE=254
+    if [[ ${STDDEV_INT} -gt 0 ]]; then
+        # if standard deviation is ~0, then this isn't going to be a useful difference to look at
+        if [[ ${HIGHEST_VALUE_SEEN_INT} -gt ${MAX_VARIATION_INT} ]]; then
+            echo "The Weka container-level statistic ${STATISTIC_NAME} showed some statistical outliers"
+            echo "This is based on the data having a standard deviation of ${STDDEV}, and the highest value seen"
+            echo "${HIGHEST_VALUE_SEEN} which is beyond the arbitrary limit standard_deviation *  ${MAX_STDDEV}"
+            echo "This is not conclusive evidence of a problem, however it may be useful as a pointer"
+            echo "The data checked is from weka stats --show-internal --stat ${STATISTIC_NAME} --per-process --interval ${INTERVAL} -s value --no-header -o  value -R  --process-ids ${BACKEND_PROCESSES}"
+            RETURN_CODE=254
+        fi
     fi
 done
 
