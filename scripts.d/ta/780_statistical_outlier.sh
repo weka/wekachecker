@@ -50,16 +50,22 @@ BEGIN {
 END {
     n = NR
 
-    # Compute the mean
-    mean = sum / n
+    if ( n > 0) {
+        # Compute the mean
+        mean = sum / n
 
-    # Compute the standard deviation - assuming sample rather than population as
-    # this is partial data from a time interval
-    for (i = 1; i <= n; i++) {
-        sumsq += (x[i] - mean)^2
+        # Compute the standard deviation - assuming sample rather than population as
+        # this is partial data from a time interval
+        for (i = 1; i <= n; i++) {
+            sumsq += (x[i] - mean)^2
+        }
+        variance = sumsq / (n - 1)  # sample rather than entire population
+        stddev   = sqrt(variance)
+
+    } else {
+        variance = 1
+        stddev = 1
     }
-    variance = sumsq / (n - 1)  # sample rather than entire population
-    stddev   = sqrt(variance)
 
     # Print the results
     printf "STDDEV=%.2f\n", stddev
