@@ -202,7 +202,7 @@ for PREFIX in ${!WEKA_INTERFACES_OVERLAP[@]}; do
                 RETURN_CODE=254
                 echo "WARNING: No ip rule found for IP ${netinfo[0]}".
             else
-                ROUTE_TABLE=$(ip rule | grep -m 1 -F "${netinfo[0]}" | awk '{print $NF}')
+                ROUTE_TABLE=$(ip rule | grep -m 1 -F "${netinfo[0]}" | sed -r 's/.*lookup *(\w+).*/\1/')
                 if ! ip route show table ${ROUTE_TABLE} &> /dev/null; then
                     RETURN_CODE=254
                     echo "WARNING: route table ${ROUTE_TABLE} not found."
