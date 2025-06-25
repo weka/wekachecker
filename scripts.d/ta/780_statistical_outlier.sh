@@ -32,8 +32,6 @@ declare -a CONTAINER_LEVEL_STATISTICS
 CONTAINER_LEVEL_STATISTICS+=("PUMPS_TXQ_FULL;600;10; ; ",
                              "BAD_RECV_CSUM;600;5; ; ",
                              "CORRUPT_PACKETS;600;5 ; ",
-                             "GOODPUT_RX_RATIO;600;5 ; ",
-                             "GOODPUT_TX_RATIO;600;5 ; ",
                              "RDMA_COMP_STATUSES;600;5 ; ")
 
 AWK_TEMP_FILE=$(mktemp)
