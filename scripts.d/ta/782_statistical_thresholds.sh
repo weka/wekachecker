@@ -41,7 +41,8 @@ for STATISTIC_TO_CHECK in "${CONTAINER_LEVEL_STATISTICS[@]}" ; do
     BACKEND_PROCESSES=$( ( weka cluster process -o id -F role=COMPUTE --no-header ; weka cluster process -o id -F role=DRIVES --no-header ) | paste -sd "," - )
 
     if [[ ${TEST_TO_APPLY} == "minimum" ]]; then
-        LOWEST_VALUE_SEEN=$(weka stats --show-internal --stat ${STATISTIC_NAME} --per-process --interval ${INTERVAL} -s value --no-header -o  value -R --process-ids ${BACKEND_PROCESSES} | sed 's/[^0-9\.]//g' | sort -g | head -n 1)
+        # annoyingly disconnected processes show up as "0" - filter those out with -Z
+        LOWEST_VALUE_SEEN=$(weka stats --show-internal --stat ${STATISTIC_NAME} -Z --per-process --interval ${INTERVAL} -s value --no-header -o  value -R --process-ids ${BACKEND_PROCESSES} | sed 's/[^0-9\.]//g' | sort -g | head -n 1)
         WORTH_EXAMINING=$(awk -v lowest=${LOWEST_VALUE_SEEN=} -v threshold=${THRESHOLD} 'BEGIN {if (lowest < threshold) print "Examine"; else print "Skip";}')
         if [[ ${WORTH_EXAMINING} == "Examine" ]]; then
             echo "The Weka container-level statistic ${STATISTIC_NAME} is below the established threshold of ${THRESHOLD}"
