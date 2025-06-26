@@ -28,7 +28,7 @@ case ${RC} in
         ;;
 esac
 
-if [[ $(weka events --type-list LeaderIterationTooSlow --show-internal --no-header | wc -l) -ge 1 ]]; then
+if [[ $(weka events --type-list LeaderIterationTooSlow --show-internal --no-header --start-time -1d 2>/dev/null| wc -l) -ge 1 ]]; then
     echo "WARN: Cluster has experienced LeaderIterationTooSlow - if there are indications of"
     echo " performance problems please contact Customer Success and provide them the following"
     echo " references: ${JIRA_REFERENCE} and ${SFDC_REFERENCE}"
