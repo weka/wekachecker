@@ -33,7 +33,7 @@ esac
 while read WEKA_CONTAINER; do
     # Core consistency check
     if [[ $(weka cluster container -b -F container=${WEKA_CONTAINER} -o cores --no-header | uniq -c | wc -l) -gt 1 ]]; then
-        echo "There is a discrepancy in the number of cores allocated to the ${WEKA_CONTAINER} containers."
+        echo "WARN: There is a discrepancy in the number of cores allocated to the ${WEKA_CONTAINER} containers."
         echo "Core discrepancies between the same containers is atypical -- please ensure this was intentional."
         echo "If not, it is recommended to configure a consistent number of cores between similar containers."
         RETURN_CODE=254
@@ -46,7 +46,7 @@ while read WEKA_CONTAINER; do
     if [[ $MIN_MEM != $MAX_MEM ]]; then
         PERCENT_DIFF=$(awk -v min="$MIN_MEM" -v max="$MAX_MEM" 'BEGIN { printf "%.0f", (((max - min) / max) * 100) }')
         if [[ $PERCENT_DIFF -gt 5 ]]; then
-            echo "There is a $PERCENT_DIFF% difference between the minimum and maximum amount of hugepages memory allocated between the $WEKA_CONTAINER containers."
+            echo "WARN: There is a $PERCENT_DIFF% difference between the minimum and maximum amount of hugepages memory allocated between the $WEKA_CONTAINER containers."
             echo "Memory discrepancies between the same containers is atypical -- please ensure this was intentional."
             echo "If not, it is recommended to configure a consistent amount of memory between similar containers."
             RETURN_CODE=254
@@ -59,4 +59,4 @@ if [[ ${RETURN_CODE} -eq 0 ]]; then
     echo "No significant container resource discrepancies."
 fi
 
-exit $RETURN_CODE                                                                        
+exit $RETURN_CODE
