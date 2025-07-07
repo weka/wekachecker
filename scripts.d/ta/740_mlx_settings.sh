@@ -60,7 +60,6 @@ if [[ ${#PCI_BUSES[@]} -gt 0 ]]; then
             done < <(mst status -v | awk '/'"${PCI_BUSES[$PCI]}"'/{print $2}')
         fi
     done
-    mst stop &> /dev/null
 fi
 
 if [[ $RETURN_CODE -eq 0 ]]; then
