@@ -3,8 +3,8 @@
 #set -ue # Fail with an error code if there's any sub-command/variable error
 
 DESCRIPTION="Check for optimal Mellanox NIC settings"
-SCRIPT_TYPE="single"
-JIRA_REFERENCE=""
+SCRIPT_TYPE="parallel"
+JIRA_REFERENCE="WEKAPP-524442"
 WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
@@ -45,6 +45,12 @@ while read CONTAINER; do
 done < <(weka local ps --no-header -o name)
 
 if [[ ${#PCI_BUSES[@]} -gt 0 ]]; then
+    grep -q "^ib_uverbs .*Live" /proc/modules
+    if [[ $? != "0" ]] ; then
+        RETURN_CODE=254
+        echo "The kernel module ib_uverbs has not been loaded. Suggest checking kernel module versions and/or OFED"
+        echo "This module is required to successfully use Mellanox cards - refer to WEKAPP-524442 for details"
+    fi
     mst start &> /dev/null
     for PCI in "${!PCI_BUSES[@]}"; do
         if [[ -n ${PCI_BUSES[$PCI]} ]]; then
@@ -60,7 +66,6 @@ if [[ ${#PCI_BUSES[@]} -gt 0 ]]; then
             done < <(mst status -v | awk '/'"${PCI_BUSES[$PCI]}"'/{print $2}')
         fi
     done
-    mst stop &> /dev/null
 fi
 
 if [[ $RETURN_CODE -eq 0 ]]; then
