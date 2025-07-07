@@ -3,8 +3,8 @@
 #set -ue # Fail with an error code if there's any sub-command/variable error
 
 DESCRIPTION="Check for optimal Mellanox NIC settings"
-SCRIPT_TYPE="single"
-JIRA_REFERENCE=""
+SCRIPT_TYPE="parallel"
+JIRA_REFERENCE="WEKAPP-524442"
 WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
