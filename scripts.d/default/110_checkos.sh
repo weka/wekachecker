@@ -17,6 +17,9 @@ echo Version_Id $VERSION_ID
 echo ID $ID
 
 case $ID in
+	'weka')
+		;;
+
 	'centos')
 		case $VERSION_ID in
 			'8.'[0-5]) ;;
@@ -38,7 +41,7 @@ case $ID in
 	'rocky')
 		case $VERSION_ID in
 			'8.'[0-9]) ;;
-	    '8.10') ;;
+			'8.10') ;;
 			'9.'[0-4]) ;; # change to warning=1 when RHEL 9 is supported
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
@@ -47,9 +50,9 @@ case $ID in
 
 	'oracle')
 		case $VERSION_ID in
-	    '8.5') ;;
-	    '8.7') ;;
-	    '8.9') ;;
+			'8.5') ;;
+			'8.7') ;;
+			'8.9') ;;
 			'9.0') ;; # change to warning=1 when RHEL 9 is supported
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
