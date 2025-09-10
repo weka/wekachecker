@@ -357,7 +357,9 @@ if __name__ == "__main__":
     try:
         args.basedir = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
     except AttributeError:
-        args.basedir = os.path.dirname(sys.argv[0])
+        pass
+
+    args.basedir = os.path.dirname(sys.argv[0])
 
     args.cur_dir = os.getcwd()
     if len(args.basedir) == 0:
