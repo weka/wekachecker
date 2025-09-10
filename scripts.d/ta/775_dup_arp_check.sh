@@ -25,7 +25,7 @@ elif [[ $RC -ne 0 ]]; then
     exit 254
 fi
 
-# Process each management IP
+ # Process each management IP
 for MGMT_IP in $(weka cluster container -b -o ips --no-header | tr ',' '\n' | tr -d ' ' | sort -u); do
     NEIGH_LINE=$(ip neigh | grep -w "$MGMT_IP" || true)
 
@@ -36,6 +36,7 @@ for MGMT_IP in $(weka cluster container -b -o ips --no-header | tr ',' '\n' | tr
     elif [[ $(echo "$NEIGH_LINE" | grep -v STALE | awk '{print $5}' | sort -u | wc -l) -gt 1 ]]; then
         echo "WARN: Duplicate ARP entry found for IP $MGMT_IP"
         echo "Recommended Resolution: check for IP clashes, and ensure a 1:1 mapping for IP:MACs"
+
         RETURN_CODE=254
     fi
 done

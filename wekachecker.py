@@ -15,11 +15,11 @@ from wekalib.signals import signal_handling
 from wekapyutils.wekalogging import configure_logging, register_module, DEFAULT
 from wekapyutils.wekassh import RemoteServer, pdsh
 
-import report
 
 # get root logger
 log = logging.getLogger()
 
+AWS_error = 'Please login as the user "ec2-user" rather than the user "root".\n\n'
 
 @contextmanager
 def pushd(new_dir):
@@ -59,6 +59,7 @@ def run_scripts(workers, scripts, args, preamble):
     num_warn = 0
     num_fail = 0
     num_pass = 0
+    results = dict()
 
     # execute each script
     for scriptname in scripts:
@@ -86,7 +87,9 @@ def run_scripts(workers, scripts, args, preamble):
             # run on a single server - doesn't matter which
             server.run(command)
             if not resultkey in results:
-                results[resultkey] = {}
+                results[resultkey] = dict()
+            if server.output.stdout == AWS_error:
+                server.output.status = 255
             results[resultkey][str(server)] = [server.output.status,
                                                server.output.stdout]
             max_retcode = server.output.status
@@ -97,7 +100,9 @@ def run_scripts(workers, scripts, args, preamble):
                 # run on all servers, but one at a time (sequentially)
                 server.run(command)
                 if not resultkey in results:
-                    results[resultkey] = {}
+                    results[resultkey] = dict()
+                if server.output.stdout == AWS_error:
+                    server.output.status = 255
                 results[resultkey][str(server)] = [server.output.status,
                                                    server.output.stdout]
 
@@ -169,151 +174,193 @@ def run_scripts(workers, scripts, args, preamble):
     return num_pass, num_warn, num_fail, results
 
 
+def process_json(infile, outfile):
+    returnCodes = {0: "PASS", 1: "*FAIL", 127: "SCRIPT ERROR", 254: "WARN", 255: "*HARDFAIL"}
+    indent = ' ' * 6
+    with open(infile) as fp:
+        results = json.load(fp)
+    with (open(outfile, 'w') if outfile != '-' else sys.stdout) as of:
+        for scriptname_description, server_dict in results.items():
+            scriptname, description = scriptname_description.split(":")
+            first = True
+            header = f"\n{scriptname}:\n  {description}\n"
+            for server, test_results in server_dict.items():
+                serverstr = f" {server + ': ':<17}"
+                returnCode, msg = test_results[0], test_results[1]
+                resultstr = returnCodes[
+                    returnCode] if returnCode in returnCodes else f"UNRECOGNIZED RETURN CODE {returnCode}"
+                if returnCode != 0:
+                    if first:
+                        first = False
+                        of.write(header)
+                    msg = [f"{indent}{l}\n" for l in msg.splitlines()]
+                    if msg is None or len(msg) == 0:  # prevent script failures
+                        msg = " EMPTY RESPONSE"
+                    firstmsg = msg[0][len(indent) - 1:]
+                    rest = msg[1:]
+                    m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
+                    of.write(m)
+
+
+def checker(args):
+    # load our ssh configuration
+    remote_servers = list()
+
+    #ab = os.path.abspath(args.wd)
+    #wd = os.path.dirname(ab)
+    #wd = args.basedir
+
+    with pushd(args.basedir):  # change to this dir so we can find "./scripts.d"
+        # make sure passwordless ssh works to all the servers because nothing will work if not set up
+        announce("Opening ssh sessions to all servers\n")
+        parallel_threads = {}
+        for host in args.servers:
+            remote_servers.append(RemoteServer(host))
+
+        # For CLIENT mode... check if the user gave us the dataplane IP addr by checking the routing tables to see if it
+        # can route to the --clusterip.   If they didn't specify the clusterip, just perform local tests.
+
+        # open ssh sessions to the servers - errors are in workers[<servername>].exc
+        # loop through all rather than parallel because
+        # some may be passwordless, others not.   If any are not, assumes the rest
+        # will use the same user/pw
+        user, pw = None, None
+        for server in remote_servers:
+            if pw != None:
+                server.user, server.password = user, pw
+            ot = subprocess.PIPE
+            p = subprocess.Popen(["ping", "-c1", server._hostname], stdout=ot, stderr=ot)
+            pstdout, pstderr = p.communicate()
+            if p.returncode > 0:
+                announce(f"Unable to ping {server._hostname}; skipping connect attempt\n")
+                server.exc = Exception("Ping failed.")
+                continue
+            server.connect()
+            if server.password is not None and len(server.password) > 0 and server.password != pw:
+                user, pw = server.user, server.password
+
+        errors = False
+        for server in remote_servers:
+            if server.exc is not None:
+                # we had an error connecting
+                print(f"Error connecting to {server}: {server.exc}; aborting")
+                errors = True
+        if errors:
+            sys.exit(1)
+
+        # get the list of scripts in ./etc/scripts.d
+        """
+        if not args.clusterscripts and not args.serverscripts:
+            # unspecicified by user so execute all scripts
+            scripts = [f for f in glob.glob(f"./scripts.d/{args.workload}/[0-9]*")]
+        else:
+            scripts = []
+            if args.clusterscripts:
+                scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/0*")]
+            if args.serverscripts:
+                scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/[1-2]*")]
+        """
+        scripts = [f for f in glob.glob(f"./scripts.d/{args.workload}/[0-9]*")]
+
+        # sort them so they execute in the correct order
+        scripts.sort()
+
+        # get the preamble file - commands and settings for all scripts
+        preamblefile = open(f"scripts.d/{args.workload}/preamble")
+        if preamblefile.mode == "r":
+            preamble = preamblefile.read()  # suck in the contents of the preamble file
+        else:
+            preamble = ""  # open failed
+
+        # save the server names/ips to pass to the subscripts
+        arguments = ""
+
+        #if args.json_flag:
+        #    arguments = arguments + "-j "
+
+        if args.fix_flag:
+            arguments = arguments + "-f "
+
+        if args.clusterip is not None and args.workload == "client":
+            arguments = arguments + "--clusterip " + args.clusterip
+        else:
+            if args.clusterip is not None:
+                print("ERROR: --clusterip is only valid with --workload client")
+                sys.exit(1)
+
+        for server in args.servers:
+            arguments += server + ' '
+
+        cluster_results = dict()
+
+        num_passed, num_warned, num_failed, results = run_scripts(remote_servers, scripts, arguments, preamble)
+
+        #if args.json_flag:
+        #    print(json.dumps(results, indent=2, sort_keys=True))
+
+        print()
+        print("RESULTS: " + str(num_passed) + " Tests Passed, " + str(num_failed) + " Failed, " + str(
+            num_warned) + " Warnings")
+
+    # dump out of the pushd() so we can save the test_results.json in the current dir
+    fp = open("test_results.json", "w+")  # Vin - add date/time to file name
+    fp.write(json.dumps(results, indent=4, sort_keys=True))
+    fp.write("\n")
+    fp.close()
+
+    process_json("test_results.json", "test_results.txt")
+
 #
 #   main
 #
+if __name__ == "__main__":
 
-# catch signals like ^C and exit gracefully
-signal_handler = signal_handling()
+    # catch signals like ^C and exit gracefully
+    signal_handler = signal_handling()
 
-# parse arguments
-progname = sys.argv[0]
-parser = argparse.ArgumentParser(description='Check if servers are ready to run Weka')
-parser.add_argument('servers', metavar='dataplane_ips', type=str, nargs='*',
-                    help='Server DATAPLANE IPs to execute on')
-parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='store_true',
-                    help="Execute cluster-wide scripts")
-parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store_true',
-                    help="Execute server-specific scripts")
-parser.add_argument("-w", "--workload", dest='workload', default="default",
-                    help="workload definition directory (a subdir of scripts.d)")
-parser.add_argument("--clusterip", dest='clusterip', default=None,
-                    help="IP address of a cluster (for use with --workload client)")
+    # parse arguments
+    progname = sys.argv[0]
+    parser = argparse.ArgumentParser(description='Check if servers are ready to run Weka')
+    parser.add_argument('servers', metavar='dataplane_ips', type=str, nargs='*',
+                        help='Server DATAPLANE IPs to execute on')
+    #parser.add_argument("-c", "--clusterscripts", dest='clusterscripts', action='store_true',
+    #                    help="Execute cluster-wide scripts")
+    #parser.add_argument("-s", "--serverscripts", dest='serverscripts', action='store_true',
+    #                    help="Execute server-specific scripts")
+    parser.add_argument("-w", "--workload", dest='workload', default="default",
+                        help="workload definition directory (a subdir of scripts.d)")
+    parser.add_argument("--clusterip", dest='clusterip', default=None,
+                        help="IP address of a cluster (for use with --workload client)")
 
-# these next args are passed to the script and parsed in etc/preamble - this is more for syntax checking
-parser.add_argument("-v", "--verbose", dest='verbosity', action='store_true', help="enable verbose mode")
-parser.add_argument("-j", "--json", dest='json_flag', action='store_true', help="enable json output mode")
-parser.add_argument("-f", "--fix", dest='fix_flag', action='store_true',
-                    help="don't just report, but fix any errors if possible")
-parser.add_argument("--version", dest='version', action='store_true', help="display version info")
+    # these next args are passed to the script and parsed in etc/preamble - this is more for syntax checking
+    parser.add_argument("-v", "--verbose", dest='verbosity', action='store_true', help="enable verbose mode")
+    parser.add_argument("-j", "--json", dest='json_flag', action='store_true', help="enable json output mode")
+    parser.add_argument("-f", "--fix", dest='fix_flag', action='store_true',
+                        help="don't just report, but fix any errors if possible")
+    parser.add_argument("--version", dest='version', action='store_true', help="display version info")
 
-args = parser.parse_args()
+    args = parser.parse_args()
 
-if args.version:
-    print(f"{progname} version 20240403")
-    sys.exit(0)
+    if args.version:
+        print(f"{progname} version 20250303")
+        sys.exit(0)
 
-if len(args.servers) == 0:
-    print("ERROR: No servers specified")
-    sys.exit(1)
-
-# local modules
-register_module("wekachecker", DEFAULT)
-register_module("paramiko", logging.ERROR)
-configure_logging(log, args.verbosity)
-
-# load our ssh configuration
-remote_servers = list()
-
-ab = os.path.abspath(progname)
-wd = os.path.dirname(ab)
-
-with pushd(wd):  # change to this dir so we can find "./scripts.d"
-    # make sure passwordless ssh works to all the servers because nothing will work if not set up
-    announce("Opening ssh sessions to all servers\n")
-    parallel_threads = {}
-    for host in args.servers:
-        remote_servers.append(RemoteServer(host))
-
-    # For CLIENT mode... check if the user gave us the dataplane IP addr by checking the routing tables to see if it
-    # can route to the --clusterip.   If they didn't specify the clusterip, just perform local tests.
-
-    # open ssh sessions to the servers - errors are in workers[<servername>].exc
-    # loop through all rather than parallel because 
-    # some may be passwordless, others not.   If any are not, assumes the rest
-    # will use the same user/pw
-    user, pw = None, None
-    for server in remote_servers:
-        if pw != None:
-            server.user, server.password = user, pw
-        ot = subprocess.PIPE
-        p = subprocess.Popen(["ping", "-c1", server._hostname], stdout=ot, stderr=ot)
-        pstdout, pstderr = p.communicate()
-        if p.returncode > 0:
-            announce(f"Unable to ping {server._hostname}; skipping connect attempt\n")
-            server.exc = Exception("Ping failed.")
-            continue
-        server.connect()
-        if len(server.password) > 0 and server.password != pw:
-            user, pw = server.user, server.password
-
-    errors = False
-    for server in remote_servers:
-        if server.exc is not None:
-            # we had an error connecting
-            print(f"Error connecting to {server}: {server.exc}; aborting")
-            errors = True
-    if errors:
+    if len(args.servers) == 0:
+        print("ERROR: No servers specified")
         sys.exit(1)
 
-    # ok, we're good... let's go
-    results = {}
+    # local modules
+    register_module("wekachecker", DEFAULT)
+    register_module("paramiko", logging.ERROR)
+    configure_logging(log, args.verbosity)
 
-    # get the list of scripts in ./etc/scripts.d
-    if not args.clusterscripts and not args.serverscripts:
-        # unspecicified by user so execute all scripts
-        scripts = [f for f in glob.glob(f"./scripts.d/{args.workload}/[0-9]*")]
-    else:
-        scripts = []
-        if args.clusterscripts:
-            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/0*")]
-        if args.serverscripts:
-            scripts += [f for f in glob.glob(f"./scripts.d/{args.workload}/[1-2]*")]
+    try:
+        args.basedir = sys._MEIPASS  # for PyInstaller - this is the temp dir where we are unpacked
+    except AttributeError:
+        args.basedir = os.path.dirname(sys.argv[0])
 
-    # sort them so they execute in the correct order
-    scripts.sort()
+    args.cur_dir = os.getcwd()
+    if len(args.basedir) == 0:
+        args.basedir = args.cur_dir
 
-    # get the preamble file - commands and settings for all scripts
-    preamblefile = open(f"scripts.d/{args.workload}/preamble")
-    if preamblefile.mode == "r":
-        preamble = preamblefile.read()  # suck in the contents of the preamble file
-    else:
-        preamble = ""  # open failed
-
-    # save the server names/ips to pass to the subscripts
-    arguments = ""
-
-    if args.json_flag:
-        arguments = arguments + "-j "
-
-    if args.fix_flag:
-        arguments = arguments + "-f "
-
-    if args.clusterip is not None and args.workload == "client":
-        arguments = arguments + "--clusterip " + args.clusterip
-    else:
-        if args.clusterip is not None:
-            print("ERROR: --clusterip is only valid with --workload client")
-            sys.exit(1)
-
-    for server in args.servers:
-        arguments += server + ' '
-
-    cluster_results = {}
-
-    num_passed, num_warned, num_failed, results = run_scripts(remote_servers, scripts, arguments, preamble)
-
-    if args.json_flag:
-        print(json.dumps(results, indent=2, sort_keys=True))
-
-    print()
-    print("RESULTS: " + str(num_passed) + " Tests Passed, " + str(num_failed) + " Failed, " + str(
-        num_warned) + " Warnings")
-
-# dump out of the pushd() so we can save the test_results.json in the current dir
-fp = open("test_results.json", "w+")  # Vin - add date/time to file name
-fp.write(json.dumps(results, indent=4, sort_keys=True))
-fp.write("\n")
-fp.close()
-
-report.process_json("test_results.json", "test_results.txt")
+    checker(args)
