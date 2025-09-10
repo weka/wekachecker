@@ -32,7 +32,7 @@ case $ID in
 		case $VERSION_ID in 
 			'8.'[0-9]) ;;
 			'8.10') ;;
-			'9.'[0-4]) ;; # change to warning=1 when RHEL 9 is supported
+			'9.'[0-6]) ;; # change to warning=1 when RHEL 9 is supported
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
@@ -43,6 +43,7 @@ case $ID in
 			'8.'[0-9]) ;;
 			'8.10') ;;
 			'9.'[0-4]) ;; # change to warning=1 when RHEL 9 is supported
+			'9.6') ;;
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
@@ -62,9 +63,8 @@ case $ID in
 	'alma')
 		case $VERSION_ID in 
 
-			'8.'[0-9]) client_only=1 ;;
 			'8.10') client_only=1 ;;
-			'9.'[0-4]) client_only=1 ;; # change to warning=1 when RHEL 9 is supported
+			'9.'[4-6]) client_only=1 ;; # change to warning=1 when RHEL 9 is supported
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
@@ -89,6 +89,13 @@ case $ID in
 			'24.04') ;;
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
+		esac
+		;;
+
+  'debian')
+		case $VERSION_ID in
+			'10') ;;
+			'12') ;;
 		esac
 		;;
 

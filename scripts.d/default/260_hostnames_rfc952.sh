@@ -19,7 +19,7 @@ if [[ ${LENGTH_HOSTNAME} -eq "1" ]] ; then
 fi
 
 # Use an inverted regex class to search for invalid characters - thus if grep finds a match it's invalid
-GREP_RESULT=$(echo ${SHORT_HOSTNAME} | grep "[^-a-z0-9.]")
+GREP_RESULT=$(echo ${SHORT_HOSTNAME} | grep "[^-A-Za-z0-9.]")
 if [[ $? -eq 0 ]]; then
     echo "The hostname ${SHORT_HOSTNAME} appears to contain a character other than [a-z], -, and [0-9]."
     echo "Refer to RFC 952 for more information"
