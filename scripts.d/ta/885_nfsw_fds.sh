@@ -42,7 +42,7 @@ if [[ ${CLUSTERMAXFDS} -eq -1 ]]; then
     exit 0
 fi
 
-LOCALMAXFDS=$(weka local exec -C ganesha -- dbus-send --print-reply --system --dest=org.ganesha.nfsd /org/ganesha/nfsd/ExportMgr org.ganesha.nfsd.exportstats.ShowCacheInode | awk '/FSAL/ {flag=1; next} flag && /uint64/ {print $2; flag=0}')
+LOCALMAXFDS=$(weka local exec -C ganesha -- dbus-send --print-reply --system --dest=org.ganesha.nfsd /org/ganesha/nfsd/ExportMgr org.ganesha.nfsd.exportstats.ShowCacheInode 2>/dev/null | awk '/FSAL/ {flag=1; next} flag && /uint64/ {print $2; flag=0}')
 if [[ -z "${LOCALMAXFDS}" ]]; then
     echo "INFO: Unable to query allocated NFSW FDs"
     exit 0
@@ -50,7 +50,11 @@ fi
 
 PERCENT=$(awk -v used="$LOCALMAXFDS" -v max="$CLUSTERMAXFDS" 'BEGIN { printf "%.0f", (used / max) * 100 }')
 
-if [[ "$PERCENT" -ge 90 ]]; then
+if [[ ! -f /proc/net/if_inet6 ]]; then
+    echo "FAIL: IPv6 disabled on a WEKA host running a ganesha container."
+    echo "Recommended Resolution: enable IPv6 to ensure the ganesha health check is operable."
+    exit 255
+elif [[ "$PERCENT" -ge 90 ]]; then
     echo "WARN: Number of allocated NFSW FDs (${LOCALMAXFDS} FDs) is ${PERCENT}% of the max (${CLUSTERMAXFDS} FDs)."
     echo "Recommended Resolution: increase maxOpenFDs to 500000:"
     echo "weka debug config override nfsGaneshaConfig.maxOpenFDs 500000"
