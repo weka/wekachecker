@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DESCRIPTION="Check OS Release..."
+DESCRIPTION="Check OS Release"
 SCRIPT_TYPE="parallel"
 
 # Currently supported releases:
@@ -108,7 +108,7 @@ if [ "$distro_not_found" -eq 1 ]; then
 	exit 1
 elif [ "$version_not_found" -eq 1 ]; then
 	echo "$NAME detected but version not found"
-	exit 1
+	exit 254
 elif [ "$unsupported_distro" -eq 1 ]; then
 	echo "$NAME is not a supported distribution"
 	exit 1
