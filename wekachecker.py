@@ -199,7 +199,8 @@ def process_json(results):
             if returnCode != 0:
                 if first:
                     first = False
-                    of.write(header)
+                    #of.write(header)
+                    print(header)
                 msg = [f"{indent}{l}\n" for l in msg.splitlines()]
                 if msg is None or len(msg) == 0:  # prevent script failures
                     msg = " EMPTY RESPONSE"
