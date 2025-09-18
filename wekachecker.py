@@ -91,7 +91,8 @@ def run_scripts(workers, scripts, args, preamble):
             if server.output.stdout == AWS_error:
                 server.output.status = 255
             results[resultkey][str(server)] = [server.output.status,
-                                               server.output.stdout]
+                                               server.output.stdout,
+                                               server.output.stderr]
             max_retcode = server.output.status
 
         elif script_type == "sequential":
@@ -104,7 +105,8 @@ def run_scripts(workers, scripts, args, preamble):
                 if server.output.stdout == AWS_error:
                     server.output.status = 255
                 results[resultkey][str(server)] = [server.output.status,
-                                                   server.output.stdout]
+                                                   server.output.stdout,
+                                                   server.output.stderr]
 
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
@@ -120,7 +122,8 @@ def run_scripts(workers, scripts, args, preamble):
                 if not resultkey in results:
                     results[resultkey] = {}
                 results[resultkey][str(server)] = [server.output.status,
-                                                   server.output.stdout]
+                                                   server.output.stdout,
+                                                   server.output.stderr]
                 # note if any failed/warned.
                 if server.output.status > max_retcode:
                     max_retcode = server.output.status
@@ -136,7 +139,8 @@ def run_scripts(workers, scripts, args, preamble):
                 if not resultkey in results:
                     results[resultkey] = {}
                 results[resultkey][str(server)] = [server.output.status,
-                                                   server.output.stdout]
+                                                   server.output.stdout,
+                                                   server.output.stderr]
                 # save any of them for comparison; doesn't matter which one differs
                 expected_stdout = server.output.stdout
                 # note if any failed/warned.
@@ -155,15 +159,16 @@ def run_scripts(workers, scripts, args, preamble):
 
         # end of the if statment - check the return codes
         if max_retcode == 0:  # all ok
-            print(PASS)
+            #print(PASS)
             num_pass += 1
         elif max_retcode == 255:  # HARD fail, cannot continue
-            print(HARDFAIL)
+            #print(HARDFAIL)
+            pass
         elif max_retcode == 254:  # warning
-            print(WARN)
+            #print(WARN)
             num_warn += 1
         else:  # minor fail
-            print(FAIL)
+            #print(FAIL)
             num_fail += 1
 
         if max_retcode == 255:
@@ -171,35 +176,42 @@ def run_scripts(workers, scripts, args, preamble):
             # return early
             return num_pass, num_warn, num_fail, results
 
+        print()
+
     return num_pass, num_warn, num_fail, results
 
 
-def process_json(infile, outfile):
+#def process_json(infile, outfile):
+def process_json(results):
     returnCodes = {0: "PASS", 1: "*FAIL", 127: "SCRIPT ERROR", 254: "WARN", 255: "*HARDFAIL"}
     indent = ' ' * 6
-    with open(infile) as fp:
-        results = json.load(fp)
-    with (open(outfile, 'w') if outfile != '-' else sys.stdout) as of:
-        for scriptname_description, server_dict in results.items():
-            scriptname, description = scriptname_description.split(":")
-            first = True
-            header = f"\n{scriptname}:\n  {description}\n"
-            for server, test_results in server_dict.items():
-                serverstr = f" {server + ': ':<17}"
-                returnCode, msg = test_results[0], test_results[1]
-                resultstr = returnCodes[
-                    returnCode] if returnCode in returnCodes else f"UNRECOGNIZED RETURN CODE {returnCode}"
-                if returnCode != 0:
-                    if first:
-                        first = False
-                        of.write(header)
-                    msg = [f"{indent}{l}\n" for l in msg.splitlines()]
-                    if msg is None or len(msg) == 0:  # prevent script failures
-                        msg = " EMPTY RESPONSE"
-                    firstmsg = msg[0][len(indent) - 1:]
-                    rest = msg[1:]
-                    m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
-                    of.write(m)
+
+    #with (open(outfile, 'w') if outfile != '-' else sys.stdout) as of:
+    for scriptname_description, server_dict in results.items():
+        scriptname, description = scriptname_description.split(":")
+        first = True
+        header = f"\n{scriptname}:\n  {description}\n"
+        for server, test_results in server_dict.items():
+            serverstr = f" {server + ': ':<17}"
+            returnCode, msg, err = test_results[0], test_results[1], test_results[2]
+            resultstr = returnCodes[
+                returnCode] if returnCode in returnCodes else f"UNRECOGNIZED RETURN CODE {returnCode}"
+            if returnCode != 0:
+                if first:
+                    first = False
+                    #of.write(header)
+                    print(header)
+                msg = [f"{indent}{l}\n" for l in msg.splitlines()]
+                if msg is None or len(msg) == 0:  # prevent script failures
+                    msg = " EMPTY RESPONSE"
+                    # vince - do this better
+                    if err is not None and len(err) > 0:
+                        print(err)
+                firstmsg = msg[0][len(indent) - 1:]
+                rest = msg[1:]
+                m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
+                #of.write(m)
+                print(m)
 
 
 def checker(args):
@@ -308,7 +320,8 @@ def checker(args):
     fp.write("\n")
     fp.close()
 
-    process_json("test_results.json", "test_results.txt")
+    #process_json("test_results.json", "test_results.txt")  # should just pass the 'results' to this...
+    process_json(results)  # should just pass the 'results' to this...
 
 #
 #   main

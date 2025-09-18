@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DESCRIPTION="Check if kernel is supported..."
+DESCRIPTION="Check if kernel is supported"
 SCRIPT_TYPE="parallel"
 
 # Spaces required around the value as we search for " x.x "
