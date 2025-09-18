@@ -185,33 +185,32 @@ def run_scripts(workers, scripts, args, preamble):
 def process_json(results):
     returnCodes = {0: "PASS", 1: "*FAIL", 127: "SCRIPT ERROR", 254: "WARN", 255: "*HARDFAIL"}
     indent = ' ' * 6
-    #with open(infile) as fp:
-    #    results = json.load(fp)
+
     #with (open(outfile, 'w') if outfile != '-' else sys.stdout) as of:
-    with sys.stdout as of:
-        for scriptname_description, server_dict in results.items():
-            scriptname, description = scriptname_description.split(":")
-            first = True
-            header = f"\n{scriptname}:\n  {description}\n"
-            for server, test_results in server_dict.items():
-                serverstr = f" {server + ': ':<17}"
-                returnCode, msg, err = test_results[0], test_results[1], test_results[2]
-                resultstr = returnCodes[
-                    returnCode] if returnCode in returnCodes else f"UNRECOGNIZED RETURN CODE {returnCode}"
-                if returnCode != 0:
-                    if first:
-                        first = False
-                        of.write(header)
-                    msg = [f"{indent}{l}\n" for l in msg.splitlines()]
-                    if msg is None or len(msg) == 0:  # prevent script failures
-                        msg = " EMPTY RESPONSE"
-                        # vince - do this better
-                        if err is not None and len(err) > 0:
-                            print(err)
-                    firstmsg = msg[0][len(indent) - 1:]
-                    rest = msg[1:]
-                    m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
-                    of.write(m)
+    for scriptname_description, server_dict in results.items():
+        scriptname, description = scriptname_description.split(":")
+        first = True
+        header = f"\n{scriptname}:\n  {description}\n"
+        for server, test_results in server_dict.items():
+            serverstr = f" {server + ': ':<17}"
+            returnCode, msg, err = test_results[0], test_results[1], test_results[2]
+            resultstr = returnCodes[
+                returnCode] if returnCode in returnCodes else f"UNRECOGNIZED RETURN CODE {returnCode}"
+            if returnCode != 0:
+                if first:
+                    first = False
+                    of.write(header)
+                msg = [f"{indent}{l}\n" for l in msg.splitlines()]
+                if msg is None or len(msg) == 0:  # prevent script failures
+                    msg = " EMPTY RESPONSE"
+                    # vince - do this better
+                    if err is not None and len(err) > 0:
+                        print(err)
+                firstmsg = msg[0][len(indent) - 1:]
+                rest = msg[1:]
+                m = f"{resultstr:>9}:{serverstr}" + firstmsg + "".join(rest)
+                #of.write(m)
+                print(m)
 
 
 def checker(args):
