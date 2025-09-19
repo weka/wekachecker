@@ -85,8 +85,8 @@ case $ID in
 		case $VERSION_ID in
 			'18.04.'[0-6]) ;;
 			'20.04.'[0-3]) ;;
-			'22.04') ;;
-			'24.04') ;;
+			'22.04'*) ;;
+			'24.04'*) ;;
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
