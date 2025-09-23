@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -ueo pipefail # Fail with an error code if there's any sub-command/variable error
+#set -ueo pipefail # Fail with an error code if there's any sub-command/variable error
+set -eo pipefail # Fail with an error code if there's any sub-command/variable error
 
 DESCRIPTION="Verify if source-based IP routing is required (and set up)"
 SCRIPT_TYPE="parallel"
@@ -179,7 +180,7 @@ for PREFIX in ${!WEKA_INTERFACES_OVERLAP[@]}; do
                 if [[ $(sysctl -n net.ipv4.conf.${NIC}.arp_ignore) != "1" ]]; then
                     RETURN_CODE=254
                     echo "WARNING: arp_ignore is not set to 1 on interface ${NIC}".
-                elif [[ [[ $(sysctl -n net.ipv4.conf.all.arp_ignore) -gt "1" ]]; then
+                elif [[ $(sysctl -n net.ipv4.conf.all.arp_ignore) -gt "1" ]]; then
                     RETURN_CODE=254
                     echo "WARNING: net.ipv4.conf.all.arp_ignore is set to $(sysctl -n net.ipv4.conf.all.arp_ignore), which overrides"
                     echo "the arp_ignore value on specific network interfaces."
@@ -201,7 +202,7 @@ for PREFIX in ${!WEKA_INTERFACES_OVERLAP[@]}; do
                 if [[ -z "$ROUTE_ENTRY" ]]; then
                    RETURN_CODE=254
                    echo "WARNING: route table ${ROUTE_TABLE} not found."
-               elif [[ ! echo "$ROUTE_ENTRY" | grep -e ^default ]]; then
+               elif ! echo "$ROUTE_ENTRY" | grep -e ^default ; then
                    RETURN_CODE=254
                    echo "WARNING: No default route entry in table ${ROUTE_TABLE} was found."
                    echo "This may or may not be an issue, but should be confirmed."

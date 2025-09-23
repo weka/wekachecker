@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DESCRIPTION="Check OS Release..."
+DESCRIPTION="Check OS Release"
 SCRIPT_TYPE="parallel"
 
 # Currently supported releases:
@@ -85,8 +85,8 @@ case $ID in
 		case $VERSION_ID in
 			'18.04.'[0-6]) ;;
 			'20.04.'[0-3]) ;;
-			'22.04') ;;
-			'24.04') ;;
+			'22.04'*) ;;
+			'24.04'*) ;;
 			'') version_not_found=1 ;;
 			*) unsupported_version=1 ;;
 		esac
@@ -108,7 +108,7 @@ if [ "$distro_not_found" -eq 1 ]; then
 	exit 1
 elif [ "$version_not_found" -eq 1 ]; then
 	echo "$NAME detected but version not found"
-	exit 1
+	exit 254
 elif [ "$unsupported_distro" -eq 1 ]; then
 	echo "$NAME is not a supported distribution"
 	exit 1
