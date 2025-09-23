@@ -355,7 +355,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.version:
-        print(f"{progname} version 20250303")
+        print(f"{progname} version 20250910")
         sys.exit(0)
 
     if len(args.servers) == 0:
