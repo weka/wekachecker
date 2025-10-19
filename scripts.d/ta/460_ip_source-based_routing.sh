@@ -39,6 +39,7 @@ declare -A WEKA_INTERFACES_OVERLAP
 #       Only for more complex setups like load- balancing, does this behaviour cause problems.
 #
 #       arp_filter for the interface will be enabled if at least one of conf/{all,interface}/arp_filter is set to TRUE, it will be disabled otherwise
+
 # arp_ignore -- Weka recommends a value of 1
 #  Ref: https://sysctl-explorer.net/net/ipv4/arp_ignore/
 #   Define different modes for sending replies in response to received ARP requests that resolve local target IP addresses:
@@ -193,7 +194,10 @@ for PREFIX in ${!WEKA_INTERFACES_OVERLAP[@]}; do
             readarray -d "/" -t netinfo  <<< "${WEKA_INTERFACES[${NIC}]}"
 
             # Does this interface's IP appear in the rule table?
-            if ! ip rule | grep -q -m 1 -F "${netinfo[0]}"; then
+            if ! ip rule | grep -w -q -m 1 -F "${netinfo[0]}"; then
+                RETURN_CODE=254
+                echo "WARNING: No ip rule found for IP ${netinfo[0]}".
+            elif ! ip rule | grep -w -q -m 1 -F "${netinfo[0]}/32"; then
                 RETURN_CODE=254
                 echo "WARNING: No ip rule found for IP ${netinfo[0]}".
             else
