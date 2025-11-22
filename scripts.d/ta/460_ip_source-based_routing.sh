@@ -1,6 +1,5 @@
 #!/bin/bash
 
-#set -ueo pipefail # Fail with an error code if there's any sub-command/variable error
 set -eo pipefail # Fail with an error code if there's any sub-command/variable error
 
 DESCRIPTION="Verify if source-based IP routing is required (and set up)"
@@ -10,10 +9,14 @@ WTA_REFERENCE=""
 KB_REFERENCE=""
 RETURN_CODE=0
 
-declare -A WEKA_INTERFACES
-declare -A WEKA_INTERFACES_OVERLAP
+declare -A WEKA_NICS
+declare -A ALL_NICS
 
-# Last modified: 2025-08-21
+declare -A NETWORK_PREFIX_NICS 
+
+declare -A VALIDATED_NICS
+
+# Last modified: 2025-11-22
 
 # arp_announce -- Weka recommends a value of 2
 #  Ref: https://sysctl-explorer.net/net/ipv4/arp_announce/
@@ -134,84 +137,99 @@ for WEKA_CONTAINER in $(weka local ps --output name --no-header | grep -e comput
             if [[ $(ip -4 -j -o addr show dev ${NET_NAME} 2>/dev/null | tr -d \"\[:blank:]) =~ "local:"([0-9\.]+)",prefixlen:"([0-9]+) ]]; then
                 NET_IP=${BASH_REMATCH[1]}
                 NETMASK=${BASH_REMATCH[2]}
-                WEKA_INTERFACES[${NET_NAME}]="${NET_IP}/${NETMASK}"
+                WEKA_NICS[${NET_NAME}]="${NET_IP}/${NETMASK}"
             fi
         fi
     done < <(weka local resources -C ${WEKA_CONTAINER} net --stable -J | grep -w -e name | tr -d \"\,[:blank:])
 done
 
-# Determine the network prefix associated with each dataplane NIC
-if [[ ${#WEKA_INTERFACES[@]} -gt 1 ]]; then
-    declare -A network_prefixes
+# Enumerate all (IPv4) NICs on the system
+while read NIC_NAME NIC_VALUE; do
+    ALL_NICS[${NIC_NAME}]="${NIC_VALUE}"
+done < <(ip -o -f inet addr show | awk '{print $2, $4}')
 
-    # Do the dataplane NICs have addresses in overlapping networks?
-    for NET in "${!WEKA_INTERFACES[@]}"; do
-        network_prefix=$(get_network_prefix "${WEKA_INTERFACES[$NET]}")
-        WEKA_INTERFACES_OVERLAP[${network_prefix}]+="${NET} "
-    done
-fi
 
-# If we have multiple, overlapping, dataplane NICs, perform validation
-for PREFIX in ${!WEKA_INTERFACES_OVERLAP[@]}; do
-    readarray -d ' ' overlapping_nics  <<< "${WEKA_INTERFACES_OVERLAP[${PREFIX}]}"
-    if [[ ${#overlapping_nics[@]} -gt 1 ]]; then
-        for NIC in ${overlapping_nics[@]}; do
+# Determine network prefix for all NICs
+for NIC in "${!ALL_NICS[@]}"; do
+    network_prefix=$(get_network_prefix "${ALL_NICS[$NIC]}")
+    # Append NIC to the array (space-separated string)
+    NETWORK_PREFIX_NICS["$network_prefix"]+="$NIC "
+done
 
-            # Validate arp_announce (should be equal to 2)
+# Determine if any NICs' network prefix overlaps with WEKA dataplane NICs
+for WEKA_NIC in "${!WEKA_NICS[@]}"; do
+    network_prefix=$(get_network_prefix "${WEKA_NICS[$WEKA_NIC]}")
+
+    # Get all NICs on this network prefix
+    NIC_LIST="${NETWORK_PREFIX_NICS[$network_prefix]}"
+    read -r -a overlapping_nics <<< "$NIC_LIST"
+
+    # Only consider overlaps with more than one NIC
+    if (( ${#overlapping_nics[@]} > 1 )); then
+        for OVERLAP_NIC in "${overlapping_nics[@]}"; do
+		    # Already validated?
+			if [[ ! -v VALIDATED_NICS["$OVERLAP_NIC"] ]]; then
+		    VALIDATED_NICS["$OVERLAP_NIC"]=1
+		
+            # ----------------------------
+            # Validate arp_announce (should be 2)
+            # ----------------------------
             ARP_ANNOUNCE_ALL=$(sysctl -n net.ipv4.conf.all.arp_announce)
-            if [[ ${ARP_ANNOUNCE_ALL} != "2" ]]; then
-                if [[ $(sysctl -n net.ipv4.conf.${NIC}.arp_announce) != "2" ]]; then
+            if [[ "$ARP_ANNOUNCE_ALL" != "2" ]]; then
+                NIC_ANNOUNCE=$(sysctl -n net.ipv4.conf."$OVERLAP_NIC".arp_announce)
+                if [[ "$NIC_ANNOUNCE" != "2" ]]; then
                     RETURN_CODE=254
-                    echo "WARNING: arp_announce is not set to 2 on interface ${NIC}".
+                    echo "WARNING: arp_announce is not set to 2 on interface $OVERLAP_NIC"
                 fi
             fi
 
-            # Validate arp_filter (should be equal to 1)
+            # ----------------------------
+            # Validate arp_filter (should be 1)
+            # ----------------------------
             ARP_FILTER_ALL=$(sysctl -n net.ipv4.conf.all.arp_filter)
-            if [[ ${ARP_FILTER_ALL} != "1" ]]; then
-                if [[ $(sysctl -n net.ipv4.conf.${NIC}.arp_filter) != "1" ]]; then
+            if [[ "$ARP_FILTER_ALL" != "1" ]]; then
+                NIC_FILTER=$(sysctl -n net.ipv4.conf."$OVERLAP_NIC".arp_filter)
+                if [[ "$NIC_FILTER" != "1" ]]; then
                     RETURN_CODE=254
-                    echo "WARNING: arp_filter is not set to 1 on interface ${NIC}".
-               fi
-            fi
-
-            # Validate arp_ignore (should be 1)
-            #  If all set to 1, that's good enough
-            if [[ $(sysctl -n net.ipv4.conf.all.arp_ignore) != "1" ]]; then
-                if [[ $(sysctl -n net.ipv4.conf.${NIC}.arp_ignore) != "1" ]]; then
-                    RETURN_CODE=254
-                    echo "WARNING: arp_ignore is not set to 1 on interface ${NIC}".
-                elif [[ $(sysctl -n net.ipv4.conf.all.arp_ignore) -gt "1" ]]; then
-                    RETURN_CODE=254
-                    echo "WARNING: net.ipv4.conf.all.arp_ignore is set to $(sysctl -n net.ipv4.conf.all.arp_ignore), which overrides"
-                    echo "the arp_ignore value on specific network interfaces."
+                    echo "WARNING: arp_filter is not set to 1 on interface $OVERLAP_NIC"
                 fi
             fi
 
-            ###################################
-            # Check ip rules / routing tables #
-            ###################################
-            readarray -d "/" -t netinfo  <<< "${WEKA_INTERFACES[${NIC}]}"
-
-            # Does this interface's IP appear in the rule table?
-            if ! ip rule | grep -w -q -m 1 -F "${netinfo[0]}"; then
-                RETURN_CODE=254
-                echo "WARNING: No ip rule found for IP ${netinfo[0]}".
-            elif ! ip rule | grep -w -q -m 1 -F "${netinfo[0]}/32"; then
-                RETURN_CODE=254
-                echo "WARNING: No ip rule found for IP ${netinfo[0]}".
-            else
-                ROUTE_TABLE=$(ip rule | grep -m 1 -F "${netinfo[0]}" | sed -r 's/.*lookup *(\w+).*/\1/')
-                ROUTE_ENTRY=$(ip route show table ${ROUTE_TABLE} 2>/dev/null)
-                if [[ -z "$ROUTE_ENTRY" ]]; then
-                   RETURN_CODE=254
-                   echo "WARNING: route table ${ROUTE_TABLE} not found."
-               elif ! echo "$ROUTE_ENTRY" | grep -e ^default ; then
-                   RETURN_CODE=254
-                   echo "WARNING: No default route entry in table ${ROUTE_TABLE} was found."
-                   echo "This may or may not be an issue, but should be confirmed."
-               fi
+            # ----------------------------
+            # Validate arp_ignore (should be 1)
+            # ----------------------------
+            ARP_IGNORE_ALL=$(sysctl -n net.ipv4.conf.all.arp_ignore)
+            if [[ "$ARP_IGNORE_ALL" != "1" ]]; then
+                NIC_IGNORE=$(sysctl -n net.ipv4.conf."$OVERLAP_NIC".arp_ignore)
+                if [[ "$NIC_IGNORE" != "1" ]]; then
+                    RETURN_CODE=254
+                    echo "WARNING: arp_ignore is not set to 1 on interface $OVERLAP_NIC"
+                elif (( ARP_IGNORE_ALL > 1 )); then
+                    RETURN_CODE=254
+                    echo "WARNING: net.ipv4.conf.all.arp_ignore is set to $ARP_IGNORE_ALL, which overrides interface-specific settings"
+                fi
             fi
+
+            # ----------------------------
+            # Check ip rules / routing tables
+            # ----------------------------
+            IFS=/ read -r NIC_IP NIC_MASK <<< "${ALL_NICS[$OVERLAP_NIC]}"
+
+            if ! { ip rule | grep -w -q -m 1 -F "$NIC_IP"; } && ! { ip rule | grep -w -q -m 1 -F "$NIC_IP/32"; }; then
+                RETURN_CODE=254
+                echo "WARNING: No ip rule found for IP $NIC_IP"
+            else
+                ROUTE_TABLE=$(ip rule | grep -m 1 -F "$NIC_IP" | sed -r 's/.*lookup *(\w+).*/\1/')
+                ROUTE_ENTRY=$(ip route show table "$ROUTE_TABLE" 2>/dev/null)
+                if [[ -z "$ROUTE_ENTRY" ]]; then
+                    RETURN_CODE=254
+                    echo "WARNING: route table $ROUTE_TABLE not found."
+                elif ! echo "$ROUTE_ENTRY" | grep -q -e '^default'; then
+                    RETURN_CODE=254
+                    echo "WARNING: No default route entry in table $ROUTE_TABLE was found."
+                fi
+            fi
+		fi
         done
     fi
 done
@@ -220,6 +238,6 @@ if [[ ${RETURN_CODE} -eq 0 ]]; then
     echo "Source-based routing is not required or is correct."
 else
     echo "Recommended Resolution: review the required network settings from the WEKA docs:"
-    echo "https://docs.weka.io/planning-and-installation/bare-metal/setting-up-the-hosts#general-settings-in-etc-sysctl.conf"
+    echo "https://docs.weka.io/planning-and-installation/bare-metal/setting-up-the-hosts#configure-the-networking"
 fi
 exit ${RETURN_CODE}
