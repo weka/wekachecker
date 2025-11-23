@@ -4,7 +4,7 @@ set -ueo pipefail # Fail with an error code if there's any sub-command/variable 
 
 DESCRIPTION="Check if netmask configured in container resources matches netmask on interface"
 # script type is single, parallel, sequential, or parallel-compare-backends
-SCRIPT_TYPE="single"
+SCRIPT_TYPE="parallel"
 
 RETURN_CODE=0
 

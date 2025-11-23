@@ -2,89 +2,98 @@
 
 set -ue # Fail with an error code if there's any sub-command/variable error
 
-DESCRIPTION="Hashing on DPDK LACP links is only supported on select NICs"
-SCRIPT_TYPE="single"
-JIRA_REFERENCE="WEKAPP-539450"
+DESCRIPTION="Hashing on DPDK LACP links is only supported on CX6-DX and higher"
+SCRIPT_TYPE="parallel"
+JIRA_REFERENCE="WEKAPP-429344"
 WTA_REFERENCE=""
 RETURN_CODE=0
 
+declare -A NET_MODEL
+declare -A PCI_BUSES
 
-# WEKAPP-539450
-# https://www.notion.so/wekaio/LACP-CX6-DX-and-newer-2a030b0d101c8048a9bbc587e0242f87#2a330b0d101c80cbbbe9e689f0e7982f
-# CX-6 and older adapters
-#  -Use the Verbs path
-#  -Support only queue-affinity mode (file lag_port_select_mode cannot be changed)
+BONDED_INTERFACE=""
 
-# CX-6 LX
-#  -Uses Verbs path
-#  -Default lag_port_select_mode is hash
-#  -Changing to queue_affinity reverts to round-robin queue affinity
+# The below is currently unverified:
+#  In order to enable this feature, set this mode for both bonded devices through
+#  the below sysfs before the device is in switchdev mode:
+#  echo "hash" > /sys/class/net/enp8s0f0/compat/devlink/lag_port_select_mode
 
-# CX-6 DX and newer
-#  -Require DevX-level control (not available via Verbs API)
-#  -Legacy mode hardware LAG is broken, the bond is treated as a single port
-#  -On the Weka side, enabling DevX-level control by enabling HAVE_MLX5DV_DR_ACTION_DEST_DEVX_TIR , restored LACP and hash-based distribution on CX6-DX and newer (not effecting the behavior of older nics).
-#  -Changing lag_port_select_mode to queue_affinity again breaks LACP for those nics, and the bond is treated as a single port.
-
-# lag_port_select_mode
-#  echo "hash" > /sys/class/net/<Interface Name>/compat/devlink/lag_port_select_mode
 #  This feature requires to set LAG_RESOURCE_ALLOCATION to 1 with mlxconfig
-#  dmesg *may* indicate 'devlink op lag_port_select_mode doesn't support hw lag' on unsupported models.
 
-# Process
-# - Iterate over backend management processes (weka cluster process -b -F role=MANAGEMENT -F status=UP)
-  
-# - Invoke manhole, based on process id from above (weka debug manhole --node=<Process Id> network_get_dpdk_ports)
-  
-# - Check if bondType is BOND, if so:
-#   - Validate bondMode (ACTIVE_BACKUP not supported)
-#   - Conditionally check hashPolicy, based on ip and netmaskBits
-#   - Use container id to obtain NIC model (weka cluster container net 0 -J | egrep -w -e device -e name)
+# References:
+#  https://download.lenovo.com/servers/mig/2023/06/12/57746/mlnx-lnvgy_dd_nic_cx.ib-5.9-0.5.6.0-0_rhel8_x86-64.pdf
 
-while read PID CID CONTAINER HOSTNAME; do
-    while read LINE; do
-        if [[ $LINE =~ "bondMode:"(.*)"bondType:"(.*)"hashPolicy:"(.*)"netdevName:"(.*) ]]; then
-            BOND_MODE="${BASH_REMATCH[1]}"
-            BOND_TYPE="${BASH_REMATCH[2]}"
-            HASH_MODE="${BASH_REMATCH[3]}"
-            NIC="${BASH_REMATCH[4]}"
-            if [[ ${BOND_TYPE} == "BOND" ]]; then
-			
-                # Only LACP is supported
-                if [[ ${BOND_MODE} != "IEEE_802_3AD" ]]; then
-                    echo "WARN: ${HOSTNAME} (${CONTAINER}) bonding mode is using unsupported mode ${BOND_MODE}"
-                    RETURN_CODE=254
-                fi
-			
-                # Check xmit hash policy
-                if [[ ${HASH_MODE} == "LAYER2" ]]; then
-                    echo "WARN: ${HOSTNAME} xmit hash policy for NIC ${NIC} set to layer2."
-                    RETURN_CODE=254
-                fi
-			
-                # Check to see if the NIC supports hardware hashing or not
-                while read LINE; do
-                    if [[ $LINE =~ "name:${NIC}device:"(.*) ]]; then
-                        NIC_MODEL="${BASH_REMATCH[1]}"
-                        # MT Number mapping
-                        #  MT28508 - ConnectX-Lx dual port
-                        #  MT28908 - ConnectX-Dx dual port
-                        #  MT41208 - ConnectX-7 dual port
-                        #  MT41608 - ConnectX-7 dual port
-                        if [[ ! "${NIC_MODEL}" =~ MT28508 && \
-                              ! "${NIC_MODEL}" =~ MT28908 && \
-                              ! "${NIC_MODEL}" =~ MT41208 && \
-                              ! "${NIC_MODEL}" =~ MT41608 ]]; then
-                            echo "WARN: ${HOSTNAME} (${CONTAINER}) NIC ${NIC} may not support hashing on bonded links."
-                            RETURN_CODE=254
-                        fi
-                    fi
-                done < <( weka cluster container net ${CID} -J | egrep -w -e device -e name | paste - - | tr -d \"\,[:blank:])
-				
+
+# dmesg may indicate 'devlink op lag_port_select_mode doesn't support hw lag'
+#  on unsupported models.
+
+if ! lshw -version &> /dev/null; then
+    echo "Unable to locate lshw."
+    exit 0
+fi
+
+# weka local resources net -C drives0 --stable
+# NET DEVICE  IDENTIFIER    DEFAULT GATEWAY  IPS  NETMASK  NETWORK LABEL
+# bond0       0000:08:00.0
+
+# lshw -C network -businfo
+# Bus info          Device           Class          Description
+# =============================================================
+# pci@0000:65:00.0  ens9f0np0        network        MT2892 Family [ConnectX-6 Dx]
+# pci@0000:65:00.1  ens9f1np1        network        MT2892 Family [ConnectX-6 Dx]
+
+
+# Is the cluster using a bonded NIC?
+while read CONTAINER; do
+    while read NET_ENTRY; do
+        if [[ ${NET_ENTRY} =~ "name:"(.*) ]]; then
+            NET_NAME=${BASH_REMATCH[1]}
+            if [[ -f /proc/net/bonding/${NET_NAME} ]]; then
+                BONDED_INTERFACE=${NET_NAME}
             fi
         fi
-    done < <(weka debug manhole --node=${PID} network_get_dpdk_ports | grep -w -e bondType -e bondMode -e hashPolicy -e netdevName | paste - - - - | tr -d \"\,[:blank:])
-done < <(weka cluster process -b -F role=MANAGEMENT -F status=UP -o id,containerId,container,hostname --no-header)
+    done < <(weka local resources -C ${CONTAINER} net --stable -J | grep -w -e name | tr -d \"\,[:blank:])
+done < <(weka local ps --output name --no-header | grep -vw -e envoy -e ganesha -e samba -e smbw -e s3 -e dataserv)
+
+
+if [[ -n ${BONDED_INTERFACE} ]]; then
+    if [[ $(cat /sys/class/net/${BONDED_INTERFACE}/bonding/xmit_hash_policy) =~ "layer2" ]]; then
+        echo "WARN: xmit hash policy for ${BONDED_INTERFACE} set to layer2."
+    fi
+
+    # Look for ConnectX adapters by iterating over each container
+    while read CONTAINER; do
+        while read PCI; do
+            while read LINE; do
+                if [[ $LINE =~ "pci@"([[:digit:][:punct:]]+)[[:blank:]]+([[:alnum:]]+)[[:blank:]]+"network"[[:blank:]]+(.*) ]]; then
+                    NET=${BASH_REMATCH[2]}
+                    MODEL=${BASH_REMATCH[3]}
+                    PCI_BUSES[$PCI]=${NET}
+                    NET_MODEL[$NET]=${MODEL}
+                fi
+            done < <(lshw -C network -businfo -quiet | awk '/'"$PCI"'/ && /ConnectX/{print $0}')
+        done < <(weka local resources net -C "$CONTAINER" --stable | awk 'NR>1 {print $2}' | sed -e 's/\.[0-9]//g')
+    done < <(weka local ps --output name --no-header | grep -vw -e envoy -e ganesha -e samba -e smbw -e s3 -e dataserv)
+else
+    echo "INFO: NIC bonding not enabled."
+    exit 0
+fi
+
+
+if [[ ${#PCI_BUSES[@]} -eq 0 ]]; then
+    echo "INFO: Unable to locate Mellanox NICs."
+    exit 0
+elif [[ ${#PCI_BUSES[@]} -gt 1 ]]; then
+    echo "WARN: Potentially bonding across NICs, which is not supported."
+    RETURN_CODE=254
+else
+    for NET in "${!NET_MODEL[@]}"; do
+        if [[ ! ((${NET_MODEL[${NET}]} =~ "ConnectX-6 Dx") || (${NET_MODEL[${NET}]} =~ "ConnectX-7")) ]]; then
+            echo "WARN: The ${NET} NIC (${NET_MODEL[${NET}]}) may not support hashing on bonded links."
+            RETURN_CODE=254
+        fi
+    done
+fi
 
 
 if [[ ${RETURN_CODE} -eq 0 ]]; then
