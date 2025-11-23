@@ -67,8 +67,8 @@ while read PID CID CONTAINER HOSTNAME; do
                     if [[ $LINE =~ "name:${NIC}device:"(.*) ]]; then
                         NIC_MODEL="${BASH_REMATCH[1]}"
                         # MT Number mapping
-                        #  MT28508 - ConnectX-Lx dual port
-                        #  MT28908 - ConnectX-Dx dual port
+                        #  MT28508 - ConnectX-6 Lx dual port
+                        #  MT28908 - ConnectX-6 Dx dual port
                         #  MT41208 - ConnectX-7 dual port
                         #  MT41608 - ConnectX-7 dual port
                         if [[ ! "${NIC_MODEL}" =~ MT28508 && \
