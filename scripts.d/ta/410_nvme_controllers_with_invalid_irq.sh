@@ -22,10 +22,8 @@ for PCI_DEVICE_ID in $(sudo lspci -mm | grep 'Non-Volatile memory controller' | 
         echo "The NVMe device at PCI address ${PCI_DEVICE_ID} appears to have"
         echo "invalid IRQ routing. This is indicated by the presence of a negative number in the"
         echo "\"Interrupt:\" line from lspci."
-        echo "This might not cause a problem, but it might prevent an NVMe drive from being claimed"
-        echo "by a Weka process."
-        echo "This can be caused by the presence of an enabled APIC device. Review your hardware,"
-        echo "firmware, and linux kernel settings if this is causing a problem"
+        echo "This can sometimes prevent a WEKA Process from receiving interrupts from the NVME"
+        echo "Please review your hardware, firmware, and linux kernel settings if this is causing a problem"
     fi
 done
 
