@@ -14,7 +14,10 @@ RETURN_CODE="0"
 #check that extended APIC (or x2apic) is available, because it's required for more
 # space for IRQs
 
-if (grep -m1 -q -E '^flags.*(\<extapic|\<x2apic)' /proc/cpuinfo) ; then
+grep -m1 -q -E '^flags.*(\<extapic|\<x2apic)' /proc/cpuinfo 2>/dev/null
+EXT_APIC_STATUS=$?
+if [[ ${EXT_APIC_STATUS} -eq 0 ]] ; then
+    RETURN_CODE="0"
 else
     RETURN_CODE="254"
     echo "There is no extended APIC available. This can prevent the assignment"
