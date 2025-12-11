@@ -22,7 +22,8 @@ else
     RETURN_CODE="254"
     echo "There is no extended APIC available. This can prevent the assignment"
     echo "of enough IRQs to support all hardware, resulting in the kernel"
-    echo "error message: vector space exhaustion"
+    echo "error message: vector space exhaustion. This in turn can completely"
+    echo "prevent the kernel accessing devices such as NVMEs."
     echo "A frequent cause of no extended APIC is the disabling of IOMMUs"
 fi
 
