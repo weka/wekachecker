@@ -75,7 +75,7 @@ done < <(weka local ps --output name --no-header | grep -e compute -e drive -e f
 # Enumerate all (IPv4) NICs on the system
 while read -r NIC_NAME NIC_VALUE; do
     ALL_NICS["${NIC_NAME}"]="${NIC_VALUE}"
-done < <(ip -o -f inet addr show | awk '{print $2, $4}')
+done < <(ip -o -f inet addr show scope global primary | awk '{print $2, $4}')
 
 # Determine network prefix for all NICs
 for NIC in "${!ALL_NICS[@]}"; do
