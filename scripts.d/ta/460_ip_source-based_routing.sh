@@ -58,6 +58,24 @@ check_sysctl() {
     fi
 }
 
+# Convert an IP address to a 32-bit integer
+ip_to_int() {
+    local IFS='.'
+    read -r a b c d <<< "$1"
+    echo $(( (a << 24) + (b << 16) + (c << 8) + d ))
+}
+
+# Check if a given IP falls within a CIDR range
+ip_in_cidr() {
+    local ip_int cidr_ip cidr_bits cidr_ip_int mask
+    ip_int=$(ip_to_int "$1")
+    cidr_ip="${2%%/*}"
+    cidr_bits="${2##*/}"
+    cidr_ip_int=$(ip_to_int "${cidr_ip}")
+    mask=$(( 0xFFFFFFFF << (32 - cidr_bits) & 0xFFFFFFFF ))
+    (( (ip_int & mask) == (cidr_ip_int & mask) ))
+}
+
 # Determine what NICs are being used as dataplane NICs
 while read -r WEKA_CONTAINER; do
     while read NET_ENTRY; do
@@ -147,6 +165,93 @@ for WEKA_NIC in "${!WEKA_NICS[@]}"; do
         done
     fi
 done
+
+
+IP_ROUTE_GET_ERRORS=0
+
+if [[ ${#WEKA_NICS[@]} -eq 0 ]]; then
+    echo "ERROR: WEKA_NICS is empty, nothing to check." >&2
+    exit 254 # exit early... not much else we can do
+fi
+
+# Get destination IPs from weka command
+DESTINATIONS=$(weka cluster container --backends --output ips --no-header | sed 's/,//g' | paste -s)
+
+if [[ -z "${DESTINATIONS}" ]]; then
+    echo "ERROR: No destination IPs retrieved from weka command." >&2
+    exit 254 # exit early... not much else we can do
+fi
+
+
+# Build a set of local IPs for local-destination detection
+declare -A LOCAL_IPS
+for IFACE in "${!WEKA_NICS[@]}"; do
+    LOCAL_IPS["${WEKA_NICS[${IFACE}]%%/*}"]=1
+done
+
+
+for IFACE in "${!WEKA_NICS[@]}"; do
+    CIDR="${WEKA_NICS[${IFACE}]}"
+    LOCAL_IP="${CIDR%%/*}"
+
+    # Skip interfaces that aren't UP
+    if ! ip link show dev "${IFACE}" 2>/dev/null | grep -q 'state UP'; then
+        echo "SKIP: ${IFACE} (${LOCAL_IP}) is not UP, skipping."
+        continue
+    fi
+
+    for DEST in ${DESTINATIONS}; do
+        # Skip destinations outside this interface's subnet
+        if ! ip_in_cidr "${DEST}" "${CIDR}"; then
+            continue
+        fi
+
+        ROUTE_OUTPUT=$(ip route get "${DEST}" from "${LOCAL_IP}" 2>&1) || {
+            echo "WARN: 'ip route get ${DEST} from ${LOCAL_IP}' failed: ${ROUTE_OUTPUT}" >&2
+            continue
+        }
+
+        ACTUAL_IFACE=$(awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' <<< "${ROUTE_OUTPUT}" | head -1)
+
+        if [[ -z "${ACTUAL_IFACE}" ]]; then
+            echo "WARN: Could not parse dev from route output for ${LOCAL_IP} -> ${DEST}" >&2
+            echo "      Output was: ${ROUTE_OUTPUT}" >&2
+            ((IP_ROUTE_GET_ERRORS++))
+            continue
+        fi
+
+        # If the destination is one of our local IPs, kernel routes via lo — that's expected
+        if [[ -n "${LOCAL_IPS[${DEST}]+_}" ]]; then
+            if [[ "${ACTUAL_IFACE}" == "lo" ]]; then
+                # echo "OK: ${LOCAL_IP} (${IFACE}) -> ${DEST} via lo (destination is local)"
+                :
+            else
+                echo "MISMATCH: ${LOCAL_IP} -> ${DEST} is local but routed via '${ACTUAL_IFACE}' instead of lo"
+                echo "          Full output: ${ROUTE_OUTPUT}"
+                ((IP_ROUTE_GET_ERRORS++))
+            fi
+            continue
+        fi
+
+        if [[ "${ACTUAL_IFACE}" != "${IFACE}" ]]; then
+            echo "MISMATCH: ${LOCAL_IP} belongs to '${IFACE}' but route to ${DEST} uses '${ACTUAL_IFACE}'"
+            echo "          Full output: ${ROUTE_OUTPUT}"
+            ((IP_ROUTE_GET_ERRORS++))
+        else
+            # echo "OK: ${LOCAL_IP} (${IFACE}) -> ${DEST} via ${ACTUAL_IFACE}"
+            :
+        fi
+    done
+done
+
+if [[ ${IP_ROUTE_GET_ERRORS} -gt 0 ]]; then
+    echo ""
+    echo "Failure evaluating the output of ip route get - RESULT: ${ERRORS} issue(s) detected."
+    RETURN_CODE=254
+else
+    echo ""
+    echo "RESULT: All routes use the expected outgoing interface."
+fi
 
 if [[ $RETURN_CODE -eq 0 ]]; then
     echo "Source-based routing is not required or is correct."
