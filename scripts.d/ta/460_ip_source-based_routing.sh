@@ -175,7 +175,7 @@ if [[ ${#WEKA_NICS[@]} -eq 0 ]]; then
 fi
 
 # Get destination IPs from weka command
-DESTINATIONS=$(weka cluster container --backends --output ips --no-header | sed 's/,//g' | paste -s)
+DESTINATIONS=$(weka cluster container --backends --output ips --no-header | sed 's/,//g' | sort -u | paste -s)
 
 if [[ -z "${DESTINATIONS}" ]]; then
     echo "ERROR: No destination IPs retrieved from weka command." >&2
