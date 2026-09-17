@@ -55,13 +55,24 @@ for BOND_INTERFACE in ${BONDS}; do
     fi
 
     # Iterate over slave links
-    read -ra SLAVE_LINKS < "/sys/class/net/${BOND_INTERFACE}/bonding/slaves"
+    SLAVE_LINKS=()
+    read -ra SLAVE_LINKS < "/sys/class/net/${BOND_INTERFACE}/bonding/slaves" || true
+    if [[ ${#SLAVE_LINKS[@]} -eq 0 ]]; then
+        echo "WARN: ${BOND_INTERFACE} has no slave interfaces."
+        RETURN_CODE=254
+        continue
+    fi
+
     for SLAVE_LINK in "${SLAVE_LINKS[@]}"; do
-        # Check for virtual bond device
-        IB_PATH=$(readlink -f "/sys/class/net/${SLAVE_LINK}/device/infiniband/" || true)
-        if [[ "$IB_PATH" =~ bond ]]; then
-            VIRTUAL_BOND_FOUND=1
-        fi
+        # Check for virtual bond device. The hardware LAG device is an entry
+        # (mlx5_bond_N) inside the slave's infiniband directory, not part of
+        # the directory's own path.
+        for IB_DEV in "/sys/class/net/${SLAVE_LINK}/device/infiniband/"*; do
+            [[ -e "$IB_DEV" ]] || continue
+            if [[ "${IB_DEV##*/}" =~ bond ]]; then
+                VIRTUAL_BOND_FOUND=1
+            fi
+        done
 
         # NIC model detection (Only CX-6 DX and CX-7 are supported per docs)
         PCI_DEV=$(basename "$(readlink -f "/sys/class/net/${SLAVE_LINK}/device")")
