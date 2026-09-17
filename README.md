@@ -12,7 +12,7 @@ This repository is the source/build code for weka/tools/wekachecker
 
 The `scripts.d/` directory contains a number of subdirectories that contain `bash` scripts.  Use `-w` or `--workload` to specify which set of scripts to execute.  Of course, if not specified, the `default/` directory will be used.
 
-Currently, there is `scripts.d/default`, `scripts.d/client` and `scripts.d/ta`.
+Currently, there is `scripts.d/default`, `scripts.d/client`, `scripts.d/k8s-client` and `scripts.d/ta`.
 
 Example would be `./wekachecker -w ta` to run the scripts in the `scripts.d/ta` directory.
 
