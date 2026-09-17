@@ -80,7 +80,7 @@ for BOND_INTERFACE in ${BONDS}; do
         if [[ "$PRODUCT_NAME" =~ "Socket Direct" ]]; then
             echo "WARN: Socket Direct NICs (${SLAVE_LINK}) are unlikely to support bonding."
             RETURN_CODE=254
-        elif [[ ! "$PRODUCT_NAME" =~ "ConnectX-6 Dx|ConnectX-7" ]]; then
+        elif [[ ! "$PRODUCT_NAME" =~ (ConnectX-6\ Dx|ConnectX-7) ]]; then
             echo "WARN: ${SLAVE_LINK} in ${BOND_INTERFACE}: only ConnectX-6 Dx and ConnectX-7 are officially supported for bonding."
             RETURN_CODE=254
         fi
