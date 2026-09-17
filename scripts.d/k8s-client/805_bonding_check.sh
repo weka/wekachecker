@@ -87,7 +87,7 @@ for BOND_INTERFACE in ${BONDS}; do
     done
 
     if [[ $VIRTUAL_BOND_FOUND -eq 0 ]]; then # WEKAPP-571692
-        echo "WARN: virtual bond device for ${BOND_INTERFACE} not located under /sys/class/infiniband/"
+        echo "WARN: no virtual bond device (mlx5_bond_*) found for any member of ${BOND_INTERFACE}"
         echo " Check that MOFED is properly installed and the adapter is supported."
         RETURN_CODE=254
     fi
