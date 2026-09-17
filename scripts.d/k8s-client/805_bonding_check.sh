@@ -44,11 +44,14 @@ for BOND_INTERFACE in ${BONDS}; do
         RETURN_CODE=254
     fi
 
-    # Xmit hash policy check
-    HASH_POLICY=$(<"/sys/class/net/${BOND_INTERFACE}/bonding/xmit_hash_policy")
-    if [[ "$HASH_POLICY" =~ layer2 ]]; then
-        echo "WARN: xmit hash policy for ${BOND_INTERFACE} set to layer2."
-        RETURN_CODE=254
+    # Xmit hash policy check -- only meaningful for LACP; active-backup uses a
+    # single member at a time and defaults to layer2.
+    if [[ "$BOND_MODE" == "4" ]]; then
+        read -r HASH_POLICY _ < "/sys/class/net/${BOND_INTERFACE}/bonding/xmit_hash_policy"
+        if [[ "$HASH_POLICY" == "layer2" ]]; then
+            echo "WARN: xmit hash policy for ${BOND_INTERFACE} is ${HASH_POLICY} -- traffic will not spread across bond members."
+            RETURN_CODE=254
+        fi
     fi
 
     # Iterate over slave links
