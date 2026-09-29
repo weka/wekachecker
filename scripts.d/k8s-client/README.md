@@ -14,4 +14,4 @@ Use the `ta` scripts to debug backends after joining a cluster, and the
 `client` scripts to prep a conventional (non-Kubernetes) client.
 
 Run this as such:
-    `./wekatester -w k8s-client <backend ips/names>`
+    `./wekachecker -w k8s-client <backend ips/names>`
