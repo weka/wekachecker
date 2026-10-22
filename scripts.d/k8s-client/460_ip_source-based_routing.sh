@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -eo pipefail # Fail with an error code if there's any sub-command/variable error
+# No -e: counting a finding with (( x++ )) returns 1 when x is 0, which under
+# 'set -e' would kill the script on its first detected problem.
+set -uo pipefail
 
 DESCRIPTION="Verify if source-based IP routing is required (and set up)"
 SCRIPT_TYPE="parallel"
@@ -14,9 +16,14 @@ RETURN_CODE=0
 # address is a candidate; backend IPs/hostnames given on the command line are
 # used as route-check destinations. Without them the route check is skipped.
 
-declare -A ALL_NICS
-declare -A NETWORK_PREFIX_NICS
-declare -A VALIDATED_NICS
+if (( BASH_VERSINFO[0] < 4 )); then
+    echo "ERROR: bash 4 or newer is required to run this check."
+    exit 254
+fi
+
+declare -A ALL_NICS=()
+declare -A NETWORK_PREFIX_NICS=()
+declare -A VALIDATED_NICS=()
 
 declare -A SYSCTL_KEYS=(
     ["arp_announce"]="2"
@@ -68,6 +75,32 @@ ip_in_cidr() {
     (( (ip_int & mask) == (cidr_ip_int & mask) ))
 }
 
+# Name of the routing table an 'ip rule' selects for a source address, or nothing
+# when no rule matches. Table names may contain '-' and '.', which \w does not match.
+rule_table_for() {
+    local ip="$1" escaped line
+    escaped=${ip//./\\.}
+
+    while IFS= read -r line; do
+        [[ ${line} =~ from[[:space:]]+${escaped}(/32)?[[:space:]] ]] || continue
+        if [[ ${line} =~ lookup[[:space:]]+([^[:space:]]+) ]]; then
+            printf '%s' "${BASH_REMATCH[1]}"
+            return 0
+        fi
+    done < <(ip rule 2>/dev/null)
+
+    return 1
+}
+
+# IPoIB links and some bonds sit in operstate 'unknown' while perfectly usable, so
+# only an explicit 'down' is treated as a reason to skip the interface.
+nic_is_up() {
+    local dev="$1" state
+    [[ -r /sys/class/net/${dev}/operstate ]] || return 0
+    read -r state < "/sys/class/net/${dev}/operstate"
+    [[ ${state} != "down" ]]
+}
+
 # Enumerate all (IPv4) NICs on the system
 while read -r NIC_NAME NIC_VALUE; do
     ALL_NICS["${NIC_NAME}"]="${NIC_VALUE}"
@@ -86,12 +119,12 @@ done
 
 # Any prefix shared by more than one NIC requires source-based routing
 for network_prefix in "${!NETWORK_PREFIX_NICS[@]}"; do
-    read -r -a overlapping_nics <<< "${NETWORK_PREFIX_NICS[$network_prefix]}"
+    read -r -a overlapping_nics <<< "${NETWORK_PREFIX_NICS[$network_prefix]:-}"
     if (( ${#overlapping_nics[@]} <= 1 )); then
         continue
     fi
     for OVERLAP_NIC in "${overlapping_nics[@]}"; do
-        if [[ -v VALIDATED_NICS["$OVERLAP_NIC"] ]]; then
+        if [[ -n ${VALIDATED_NICS[$OVERLAP_NIC]:-} ]]; then
             continue
         fi
         VALIDATED_NICS["$OVERLAP_NIC"]=1
@@ -108,20 +141,10 @@ for network_prefix in "${!NETWORK_PREFIX_NICS[@]}"; do
         DEFAULT_ROUTE_ENTRY_FOUND=0
         IFS=/ read -r NIC_IP NIC_MASK <<< "${ALL_NICS[$OVERLAP_NIC]}"
 
-        if ! ip rule | grep -w -q -m 1 -F "$NIC_IP" && \
-           ! ip rule | grep -w -q -m 1 -F "$NIC_IP/32"; then
+        ROUTE_TABLE=$(rule_table_for "$NIC_IP")
+        if [[ -z "$ROUTE_TABLE" ]]; then
             RETURN_CODE=254
             echo "WARNING: No ip rule found for IP $NIC_IP (interface $OVERLAP_NIC shares subnet $network_prefix/$NIC_MASK with another NIC)"
-            continue
-        fi
-
-        ROUTE_TABLE=$(ip rule | grep -w -m 1 -F "$NIC_IP" | sed -r 's/.*lookup *(\w+).*/\1/')
-        if [[ -z "$ROUTE_TABLE" ]]; then
-            ROUTE_TABLE=$(ip rule | grep -w -m 1 -F "$NIC_IP/32" | sed -r 's/.*lookup *(\w+).*/\1/')
-        fi
-        if [[ -z "$ROUTE_TABLE" ]]; then
-            RETURN_CODE=254
-            echo "WARNING: ip rule for $NIC_IP does not name a routing table"
             continue
         fi
 
@@ -160,7 +183,7 @@ IP_ROUTE_GET_ERRORS=0
 if [[ -z "${DESTINATIONS// /}" ]]; then
     echo "No backend IPs given on the command line, skipping outgoing-interface route check."
 else
-    declare -A LOCAL_IPS
+    declare -A LOCAL_IPS=()
     for IFACE in "${!ALL_NICS[@]}"; do
         LOCAL_IPS["${ALL_NICS[${IFACE}]%%/*}"]=1
     done
@@ -168,7 +191,7 @@ else
     for IFACE in "${!ALL_NICS[@]}"; do
         CIDR="${ALL_NICS[${IFACE}]}"
         LOCAL_IP="${CIDR%%/*}"
-        if ! ip link show dev "${IFACE}" 2>/dev/null | grep -q 'state UP'; then
+        if ! nic_is_up "${IFACE}"; then
             continue
         fi
         for DEST in ${DESTINATIONS}; do
@@ -182,20 +205,20 @@ else
             ACTUAL_IFACE=$(awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' <<< "${ROUTE_OUTPUT}" | head -1)
             if [[ -z "${ACTUAL_IFACE}" ]]; then
                 echo "WARN: Could not parse dev from route output for ${LOCAL_IP} -> ${DEST}: ${ROUTE_OUTPUT}"
-                ((IP_ROUTE_GET_ERRORS++)) || true
+                IP_ROUTE_GET_ERRORS=$(( IP_ROUTE_GET_ERRORS + 1 ))
                 continue
             fi
-            if [[ -n "${LOCAL_IPS[${DEST}]+_}" ]]; then
+            if [[ -n "${LOCAL_IPS[${DEST}]:-}" ]]; then
                 if [[ "${ACTUAL_IFACE}" != "lo" ]]; then
                     echo "MISMATCH: ${LOCAL_IP} -> ${DEST} is local but routed via '${ACTUAL_IFACE}' instead of lo"
-                    ((IP_ROUTE_GET_ERRORS++)) || true
+                    IP_ROUTE_GET_ERRORS=$(( IP_ROUTE_GET_ERRORS + 1 ))
                 fi
                 continue
             fi
             if [[ "${ACTUAL_IFACE}" != "${IFACE}" ]]; then
                 echo "MISMATCH: ${LOCAL_IP} belongs to '${IFACE}' but route to ${DEST} uses '${ACTUAL_IFACE}'"
                 echo "          Full output: ${ROUTE_OUTPUT}"
-                ((IP_ROUTE_GET_ERRORS++)) || true
+                IP_ROUTE_GET_ERRORS=$(( IP_ROUTE_GET_ERRORS + 1 ))
             fi
         done
     done
