@@ -175,22 +175,12 @@ bond_member_problems() {
 }
 
 if [[ -n "$BOND_INTERFACE" ]]; then
-    # Version checks
-    if verlt "4.3.3" "$CURRENT_WEKA_VERSION"; then
-        :
-    elif [[ "$CURRENT_WEKA_VERSION" == 4.* ]]; then
-        if verlt "$CURRENT_WEKA_VERSION" "4.4.10.183"; then
-            echo "WARN: This cluster does not contain the fixes from ${JIRA_REFERENCE}."
-            echo " This could lead to unexpected loss of connectivity, particularly during link loss."
-            RETURN_CODE=254
-        fi
-
-    elif [[ "$CURRENT_WEKA_VERSION" == 5.* ]]; then
-        if verlt "$CURRENT_WEKA_VERSION" "5.1.0"; then
-            echo "WARN: This cluster does not contain the fixes from ${JIRA_REFERENCE}."
-            echo " This could lead to unexpected loss of connectivity, particularly during link loss."
-            RETURN_CODE=254
-        fi
+    # Version checks: the WEKAPP-539450 fixes are in 4.4.10.183+ and 5.1.0+
+    if verlt "$CURRENT_WEKA_VERSION" "4.4.10.183" ||
+       { [[ "$CURRENT_WEKA_VERSION" == 5.* ]] && verlt "$CURRENT_WEKA_VERSION" "5.1.0"; }; then
+        echo "WARN: WEKA ${CURRENT_WEKA_VERSION} does not contain the fixes from ${JIRA_REFERENCE}."
+        echo " This could lead to unexpected loss of connectivity, particularly during link loss."
+        RETURN_CODE=254
     fi
 
     # Bonding mode check (1=active-backup, 4=LACP)
