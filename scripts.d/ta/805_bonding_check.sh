@@ -290,7 +290,7 @@ if [[ -n "$BOND_INTERFACE" ]]; then
             RETURN_CODE=254
         fi
 
-    elif [[ "$BOND_MODE" == "4" && $VIRTUAL_BOND_FOUND -eq 1 ]]; then
+    elif [[ "$BOND_MODE" == "4" && $VIRTUAL_BOND_FOUND -eq 1 ]]; then # before 6.0
         EXPECTED_LAG_MODE="hash"
         REQUESTED_LAG_MODE=$(IFS=,; echo "${!REQUESTED_LAG_MODES[*]}")
         mapfile -t DPDK_LAG_MODES < <(logged_lag_modes "$(dpdk_port_logs)")
@@ -311,7 +311,8 @@ if [[ -n "$BOND_INTERFACE" ]]; then
 
         if [[ -n ${APPLIED_LAG_MODE} && ${APPLIED_LAG_MODE} != "${EXPECTED_LAG_MODE}" ]]; then
             echo "WARN: ${BOND_INTERFACE} LAG port-selection mode is ${APPLIED_LAG_MODE} (from ${APPLIED_LAG_SOURCE}); WEKA ${CURRENT_WEKA_VERSION} expects ${EXPECTED_LAG_MODE}."
-            echo " Before 6.0, queue_affinity sends all WEKA data from each process out of one bond port."
+            echo " On this version, WEKA does not pin TX queues to bond ports, so queue_affinity sends all WEKA data"
+            echo " from each process out of one bond port."
             if [[ -n ${REQUESTED_LAG_MODE} ]]; then
                 echo " Requested mode (compat/devlink/lag_port_select_mode): ${REQUESTED_LAG_MODE}."
                 if [[ ${REQUESTED_LAG_MODE} == "${EXPECTED_LAG_MODE}" ]]; then
