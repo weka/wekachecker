@@ -245,7 +245,16 @@ if [[ -n "$BOND_INTERFACE" ]]; then
         RETURN_CODE=254
     done
 
-    if [[ $VIRTUAL_BOND_FOUND -eq 0 ]]; then # WEKAPP-571692
+    # A NIC's hardware LAG cannot span NICs. From 6.1, WEKA supports a bond across NICs
+    # (multi-NIC LACP, WEKAPP-554387) by opening each member as its own DPDK port, as in HA,
+    # so no mlx5_bond device is expected.
+    if [[ ${#NIC_CHECKED[@]} -gt 1 ]]; then
+        if verlt "$CURRENT_WEKA_VERSION" "6.1"; then
+            echo "WARN: ${BOND_INTERFACE} members are on ${#NIC_CHECKED[@]} different NICs. Before WEKA 6.1, the"
+            echo " members must be the two ports of one NIC; bonds across NICs need 6.1 or later."
+            RETURN_CODE=254
+        fi
+    elif [[ $VIRTUAL_BOND_FOUND -eq 0 ]]; then # WEKAPP-571692
         RETURN_CODE=254
         if [[ $(debugfs_lag_state "${MEMBER_LINKS[@]}") == active ]]; then
             echo "WARN: the NIC formed a hardware LAG for ${BOND_INTERFACE}, but there is no mlx5_bond RDMA device."
@@ -253,7 +262,7 @@ if [[ -n "$BOND_INTERFACE" ]]; then
         else
             echo "WARN: no hardware LAG found for ${BOND_INTERFACE} (no mlx5_bond device under"
             echo " /sys/class/net/<member>/device/infiniband/). Without it WEKA cannot use the bond. Check that:"
-            echo "  - the bond's members are exactly the two ports of one NIC;"
+            echo "  - both of the NIC's ports are in the bond;"
             echo "  - the bond mode is 802.3ad or active-backup;"
             echo "  - the mlx5_ib module is loaded, and RoCE is enabled on both ports;"
             echo "  - SR-IOV/switchdev settings are not preventing LAG (see 'dmesg | grep -i lag')."
