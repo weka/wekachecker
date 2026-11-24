@@ -49,7 +49,7 @@ BOND_INTERFACE=""
 BOND_MODE=""
 
 # Iterate over compute/frontend/drive/client containers
-mapfile -t CONTAINERS < <(weka local ps --output name,state,version --no-header | grep -E '^[^ ]*(compute|drive|frontend|client)' || true)
+mapfile -t CONTAINERS < <(weka local ps --output name,state,versionName --no-header | grep -E '^[^ ]*(compute|drive|frontend|client)' || true)
 
 # The expected LAG behaviour follows the version of the containers that use the bond, which can
 # differ from the host's default version (e.g. a client container pinned with 'weka version set -C').
@@ -119,6 +119,28 @@ debugfs_lag_mode() {
             return 0
         fi
     done
+}
+
+# Prints the descriptions of this host's DPDKAggrPortFailure alerts. 'weka alerts' is
+# cluster-wide; the description reads "LACP port <n> of <hostname> (HostId<id>) NodeId<n> ...".
+local_aggr_port_alerts() {
+    local alerts container_id
+    local -a host_patterns=(" of ${HOSTNAME_SHORT} (")
+    alerts=$(weka alerts --no-header --output type,description 2> /dev/null || true)
+    while read -r container_id; do
+        [[ ${container_id} =~ ^[0-9]+$ ]] && host_patterns+=("(HostId<${container_id}>)")
+    done < <(weka local ps --output containerId --no-header 2> /dev/null || true)
+
+    local type description pattern
+    while read -r type description; do
+        [[ ${type} == DPDKAggrPortFailure ]] || continue
+        for pattern in "${host_patterns[@]}"; do
+            if [[ ${description} == *"${pattern}"* ]]; then
+                echo "${description}"
+                break
+            fi
+        done
+    done <<< "${alerts}"
 }
 
 # Prints "active" or "disabled" from mlx5 debugfs, or nothing when debugfs is not mounted.
@@ -274,12 +296,11 @@ if [[ -n "$BOND_INTERFACE" ]]; then
     # LAG port-selection mode only applies to hardware LAG (LACP)
     if [[ "$BOND_MODE" == "4" && $VIRTUAL_BOND_FOUND -eq 1 ]] && ! verlt "$CURRENT_WEKA_VERSION" "6.0"; then
         DPDK_LOGS=$(dpdk_port_logs)
-        ALERTS=$(weka alerts --no-header 2> /dev/null || true)
-
-        if [[ ${ALERTS} == *DPDKAggrPortFailure* ]]; then
-            echo "WARN: DPDKAggrPortFailure alert is active: an LACP port failed to start in aggregated mode."
-            echo " WEKA fell back to one bond port. Check 'weka alerts' for the affected host, and"
-            echo " 'weka debug net ports <process-id> --logs'."
+        mapfile -t AGGR_PORT_ALERTS < <(local_aggr_port_alerts)
+        if [[ ${#AGGR_PORT_ALERTS[@]} -gt 0 ]]; then
+            echo "WARN: DPDKAggrPortFailure is active on this host: WEKA fell back to one bond port."
+            printf ' %s\n' "${AGGR_PORT_ALERTS[@]}"
+            echo " Check 'weka debug net ports <process-id> --logs'."
             RETURN_CODE=254
         fi
 
