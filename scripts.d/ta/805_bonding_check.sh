@@ -49,9 +49,13 @@ BOND_INTERFACE=""
 BOND_MODE=""
 
 # Iterate over compute/frontend/drive/client containers
-mapfile -t CONTAINERS < <(weka local ps --output name --no-header | grep -E 'compute|drive|frontend|client' || true)
+mapfile -t CONTAINERS < <(weka local ps --output name,state,version --no-header | grep -E '^[^ ]*(compute|drive|frontend|client)' || true)
 
-for CONTAINER in "${CONTAINERS[@]}"; do
+# The expected LAG behaviour follows the version of the containers that use the bond, which can
+# differ from the host's default version (e.g. a client container pinned with 'weka version set -C').
+BOND_CONTAINER_VERSIONS=()
+for CONTAINER_LINE in "${CONTAINERS[@]}"; do
+    read -r CONTAINER CONTAINER_STATE CONTAINER_VERSION _ <<< "${CONTAINER_LINE}"
     # Get network interfaces for container
     mapfile -t NET_ENTRIES < <(weka local resources -C "$CONTAINER" net --stable -J | grep -w 'name' | tr -d '" ,[:blank:]' || true)
     for NET_ENTRY in "${NET_ENTRIES[@]}"; do
@@ -60,10 +64,18 @@ for CONTAINER in "${CONTAINERS[@]}"; do
             if [[ -f "/proc/net/bonding/$NET_NAME" ]]; then
                 BOND_INTERFACE="$NET_NAME"
                 read -r _ BOND_MODE < "/sys/class/net/${BOND_INTERFACE}/bonding/mode"
+                if [[ ${CONTAINER_STATE} == Running && -n ${CONTAINER_VERSION} ]]; then
+                    BOND_CONTAINER_VERSIONS+=("${CONTAINER_VERSION}")
+                fi
             fi
         fi
     done
 done
+
+# With mixed versions, check against the oldest: it has the strictest LAG requirements.
+if [[ ${#BOND_CONTAINER_VERSIONS[@]} -gt 0 ]]; then
+    CURRENT_WEKA_VERSION=$(printf '%s\n' "${BOND_CONTAINER_VERSIONS[@]}" | sort -V | head -n1)
+fi
 
 # Prints the DPDK port init logs of this host's WEKA I/O processes, or nothing when the CLI
 # has no --logs flag.
